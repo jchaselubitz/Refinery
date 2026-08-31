@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "title": "Reject unknown configuration keys safely",
+  "prompt": "Change the config.toml parser so every key absent from allowed_keys returns a structured error containing the key name and source line number. Preserve redaction: the error must never include the key's value, including when that value is a secret.",
+  "objective": "Configuration typos fail with a precise, secret-free diagnostic instead of being silently ignored.",
+  "context": [
+    "src/parser.rs currently skips keys not found in allowed_keys.",
+    "tests/parser.rs contains the existing strictness and diagnostic coverage."
+  ],
+  "requirements": [
+    "Return an error for the first unknown key in config.toml.",
+    "Include the unknown key name and line number in the diagnostic.",
+    "Never include the configuration value in the diagnostic or logs."
+  ],
+  "constraints": [
+    "Keep allowed_keys as the source of truth.",
+    "Do not weaken secret redaction."
+  ],
+  "acceptance_criteria": [
+    "An unknown key produces an error naming that key and its line number.",
+    "A secret value assigned to an unknown key does not appear in the error or captured logs.",
+    "Every currently allowed configuration key still parses."
+  ],
+  "references": [
+    {"kind": "repository_path", "path": "src/parser.rs", "note": "configuration key loop"},
+    {"kind": "repository_path", "path": "tests/parser.rs", "note": "parser diagnostics"}
+  ],
+  "assumptions": ["The TOML parser exposes source spans for keys."],
+  "unresolved_questions": []
+}

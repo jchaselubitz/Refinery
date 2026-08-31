@@ -1,0 +1,30 @@
+{
+  "_warning": "STRICTLY PROTECTED: This file is managed exclusively by Overlord. Agents and users must not edit, replace, stage, commit, or delete it. Re-link the resource with Overlord to change it.",
+  "version": 3,
+  "projectId": "a8e40850-f39c-4400-9a84-99e2a585430e",
+  "projectName": "Refinery",
+  "resourceId": "8fbe00de-e520-40d5-96c0-93b0d2716d03",
+  "resourceKey": "refinery",
+  "isPrimary": true,
+  "linkedAt": "2026-08-31T08:43:40.057Z",
+  "projects": [
+    {
+      "projectId": "a8e40850-f39c-4400-9a84-99e2a585430e",
+      "projectName": "Refinery",
+      "resourceId": "8fbe00de-e520-40d5-96c0-93b0d2716d03",
+      "resourceKey": "refinery",
+      "isPrimary": true,
+      "linkedAt": "2026-08-31T08:43:40.057Z"
+    },
+    {
+      "projectId": "49763405-008f-4267-89e4-c57f5a234c91",
+      "resourceId": "6fa3d3d7-e034-4b66-857c-751da874b81b",
+      "resourceKey": "refinery",
+      "resourceIdsByExecutionTarget": {
+        "cf857924-0eb4-447d-b999-307c1411f094": "6fa3d3d7-e034-4b66-857c-751da874b81b"
+      },
+      "isPrimary": false,
+      "linkedAt": "2026-08-31T08:51:56.885Z"
+    }
+  ]
+}

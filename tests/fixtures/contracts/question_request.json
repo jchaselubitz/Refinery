@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "id": "018f6b3a-0000-7000-8000-000000000010",
+  "case_id": "018f6b3a-0000-7000-8000-000000000002",
+  "prompt": "Two details decide the approach.",
+  "questions": [
+    {
+      "id": "018f6b3a-0000-7000-8000-000000000011",
+      "label": "Which store holds the checkpoint?",
+      "description": "The answer decides whether a migration is needed.",
+      "response_type": "single_choice",
+      "choices": [
+        { "value": "sqlite", "label": "The existing SQLite database" },
+        { "value": "file" }
+      ],
+      "required": true
+    },
+    {
+      "id": "018f6b3a-0000-7000-8000-000000000012",
+      "label": "Anything else the plan must respect?",
+      "response_type": "free_text",
+      "required": false
+    }
+  ],
+  "created_at": "2026-08-31T10:05:00Z",
+  "status": "pending"
+}

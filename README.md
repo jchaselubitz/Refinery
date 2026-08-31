@@ -1,0 +1,102 @@
+# Refinery
+
+Refinery turns transcripts, repository context, images, video, and follow-up
+answers into validated prompts for destinations such as Overlord. It is a single
+local binary: one daemon, one SQLite database, one data directory, no cloud
+component.
+
+- Product authority: [`planning/coo-885-refinery-product-description-and-plan.md`](planning/coo-885-refinery-product-description-and-plan.md)
+- Build order: [`planning/coo-885-refinery-implementation-plan.md`](planning/coo-885-refinery-implementation-plan.md)
+
+## Status
+
+Stage 1 is complete. `refinery serve` binds the loopback API and the durable job
+loop, so a case submitted through Overlord ingress is prepared, refined, and
+delivered without anything else being started; `refinery open` launches a
+browser at a tokened URL onto an interface compiled into the binary. From that
+page a person can watch the case list and a case's live event stream, answer a
+pending question in free-text, single-choice, and multiple-choice form, copy
+the refined prompt, retry a failed delivery, cancel a running case, register a
+repository, and read health, settings, and the log tail.
+
+Milestones M0–M8 delivered the command surface, configuration, logging, and
+error model; M1 froze the contracts, schemas, state machine, and validation;
+M2 delivered storage, events, jobs, and recovery; M3 setup, credentials, and
+doctor; M4 the read-only repository connector; M5 the media store and provider
+uploads; M6 the Gemini agent loop; M7 the local API, ingress, and delivery.
+M8 added the embedded browser interface and live daemon composition. M9 adds
+durable product metrics, gated and sanitized provider-fixture recording, the
+versioned refinement-quality evaluation set, and an executable acceptance
+check. All nine Stage 1 completion criteria pass.
+
+Changing a contract in `src/domain/` from here on means bumping
+`CONTRACT_VERSION`, regenerating `schemas/`, and updating the frozen fixtures in
+`tests/fixtures/contracts/`. See [`schemas/README.md`](schemas/README.md).
+
+## Build and run
+
+```sh
+cargo build
+cargo run -- --help
+cargo run -- setup      # guided first run; needs a terminal
+cargo run -- status     # includes funnel, questions, resume, retry, and validation metrics
+cargo run -- doctor     # add --offline to skip the provider check
+cargo run -- serve      # the daemon: loopback API, interface, and job loop
+cargo run -- open       # launch a browser at the interface; --print for the URL
+just schemas    # regenerate the committed JSON Schemas after a contract change
+just eval       # score the versioned refinement-quality corpus
+just acceptance # run every Stage 1 completion criterion
+```
+
+`just check` runs formatting, clippy with warnings denied, the tests, the
+schema-drift check, interface asset parse, fixture sanitizer check, and the
+versioned evaluation — the same gates CI runs. The full acceptance mapping is
+documented in [`acceptance/stage1.md`](acceptance/stage1.md).
+
+## Data directory
+
+Refinery keeps everything it owns in one owner-only directory, created on first
+run:
+
+| Path            | Contents                                          |
+| --------------- | ------------------------------------------------- |
+| `refinery.toml` | Non-secret settings                               |
+| `refinery.db`   | SQLite state                                      |
+| `media/`        | Case-scoped attachment bytes                      |
+| `logs/`         | Rotating structured logs                          |
+| `credentials/`  | Credential-store fallback, where no store exists   |
+| `run/`          | Runtime state such as the service lock             |
+
+It defaults to the platform application-data location and is overridden with
+`REFINERY_DATA_DIR` or `--data-dir`. Set `REFINERY_CREDENTIALS=file` to keep
+secrets in the data directory even where the operating system has a credential
+store — the escape hatch for a broken or prompting keyring, and what the test
+suite uses so it never reads the credential store of the machine running it.
+Secrets are never written to the settings
+file; they live in the operating-system credential store.
+
+## Layout
+
+```text
+src/
+  main.rs      executable entry point
+  lib.rs       crate root
+  app.rs       composition root
+  cli/         command surface
+  config/      data-directory resolution and non-secret settings
+  domain/      wire and internal contracts, frozen in M1
+  cases/       state machine (M1), orchestration (M2), and the job loop (M8)
+  agent/       agent backend boundary and Gemini backend (M6)
+  interactions/ questions and answers (M6)
+  repositories/ read-only repository connector (M4)
+  media/       local media store and provider uploads (M5)
+  storage/     SQLite schema and intent-level operations (M2)
+  jobs/        durable job runner (M2)
+  api/         loopback HTTP API (M7) and the embedded interface (M8)
+  integrations/ destination adapters (M7)
+  diagnostics/ logging, status, and doctor
+web/static/    the interface's three source files, embedded into the binary
+```
+
+See [`web/README.md`](web/README.md) for the rules the interface is held to and
+how to work on it.

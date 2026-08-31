@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "What a destination said in response.",
+  "properties": {
+    "accepted": {
+      "description": "Whether the destination accepted the prompt.",
+      "type": "boolean"
+    },
+    "destination_reference": {
+      "description": "The destination's identifier for what it created, when it returns one, for example an Overlord objective identifier.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "message": {
+      "description": "Why it refused, when it did.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "received_at": {
+      "description": "When the destination accepted it.",
+      "format": "date-time",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "accepted",
+    "schema_version"
+  ],
+  "title": "DeliveryReceipt",
+  "type": "object"
+}

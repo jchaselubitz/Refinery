@@ -1,0 +1,19 @@
+{
+  "transcript": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "The importer starts from zero after a crash. Resume from the last committed batch and preserve exactly-once behavior."
+      },
+      {
+        "role": "assistant",
+        "content": "What checkpoint location should be authoritative?"
+      },
+      {
+        "role": "user",
+        "content": "Use the existing SQLite database. Save the checkpoint in the same transaction as the batch; do not add a new service."
+      }
+    ]
+  },
+  "questions_asked": ["What checkpoint location should be authoritative?"]
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "title": "Make the importer resumable",
+  "prompt": "Add a durable checkpoint to the importer so an interrupted run resumes from the last committed batch instead of restarting from zero.",
+  "objective": "An interrupted import resumes without duplicating or skipping rows.",
+  "context": [
+    "The importer currently restarts from zero after any interruption.",
+    "The checkpoint belongs in the existing SQLite database, per the user's answer."
+  ],
+  "requirements": [
+    "Persist a checkpoint after each committed batch, in the same transaction as the batch.",
+    "Resume from the stored checkpoint on startup."
+  ],
+  "constraints": [
+    "No schema change to the public tables."
+  ],
+  "acceptance_criteria": [
+    "Killing the importer mid-run and restarting it imports every row exactly once.",
+    "A run with no stored checkpoint behaves exactly as today."
+  ],
+  "references": [
+    { "kind": "repository_path", "path": "src/importer/mod.rs", "note": "the run loop" },
+    { "kind": "attachment", "attachment_id": "018f6b3a-0000-7000-8000-000000000020" }
+  ],
+  "assumptions": [
+    "Batches are already committed atomically."
+  ]
+}

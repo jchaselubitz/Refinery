@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "backend_id": "gemini",
+  "model": "gemini-3.7-flash",
+  "text_input": true,
+  "image_input": true,
+  "native_video_input": true,
+  "tool_calling": true,
+  "structured_output": true,
+  "resumable_conversation": true,
+  "repository_runtime": false
+}

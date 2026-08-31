@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Where a case stands.\n\nThe happy path is `received -> preparing -> running -> validating -> ready -> delivering -> completed`, with `running <-> awaiting_answer` repeating as often as the agent needs answers.",
+  "oneOf": [
+    {
+      "description": "Accepted and durable; nothing has been done with it yet.",
+      "enum": [
+        "received"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "Importing attachments, resolving the repository, selecting a backend.",
+      "enum": [
+        "preparing"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "The agent backend is working.",
+      "enum": [
+        "running"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "A question is outstanding; no job holds the case.",
+      "enum": [
+        "awaiting_answer"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "A candidate output is being validated.",
+      "enum": [
+        "validating"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "A valid output exists and delivery has not been attempted.",
+      "enum": [
+        "ready"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "Delivery is in progress, including between scheduled retries.",
+      "enum": [
+        "delivering"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "The destination accepted the refined prompt.",
+      "enum": [
+        "completed"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "The case stopped without delivering. Any output produced is preserved, so a user may retry delivery from here.",
+      "enum": [
+        "failed"
+      ],
+      "type": "string"
+    },
+    {
+      "description": "Stopped at the user's request.",
+      "enum": [
+        "cancelled"
+      ],
+      "type": "string"
+    }
+  ],
+  "title": "CaseState"
+}

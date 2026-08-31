@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "What one backend can do.",
+  "properties": {
+    "backend_id": {
+      "description": "The backend this describes, for example `gemini`.",
+      "type": "string"
+    },
+    "image_input": {
+      "description": "Accepts images.",
+      "type": "boolean"
+    },
+    "model": {
+      "description": "The model or runtime version, for the audit trail.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "native_video_input": {
+      "description": "Accepts video natively.",
+      "type": "boolean"
+    },
+    "repository_runtime": {
+      "description": "Brings its own repository runtime.",
+      "type": "boolean"
+    },
+    "resumable_conversation": {
+      "description": "Conversations survive an interruption.",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "structured_output": {
+      "description": "Can be constrained to a response schema.",
+      "type": "boolean"
+    },
+    "text_input": {
+      "description": "Accepts text prompts.",
+      "type": "boolean"
+    },
+    "tool_calling": {
+      "description": "Can call declared functions.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "backend_id",
+    "image_input",
+    "native_video_input",
+    "repository_runtime",
+    "resumable_conversation",
+    "schema_version",
+    "structured_output",
+    "text_input",
+    "tool_calling"
+  ],
+  "title": "BackendCapabilities",
+  "type": "object"
+}

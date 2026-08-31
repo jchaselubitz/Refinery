@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "Choice": {
+      "additionalProperties": false,
+      "description": "One offered answer for a choice question.",
+      "properties": {
+        "label": {
+          "description": "What the user sees. Defaults to the value when absent.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "The stable value recorded when this choice is selected.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "type": "object"
+    },
+    "Question": {
+      "additionalProperties": false,
+      "description": "One question put to the user.",
+      "properties": {
+        "choices": {
+          "description": "The choices offered, for choice questions.",
+          "items": {
+            "$ref": "#/definitions/Choice"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "Why the answer matters, when a sentence of context helps.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Refinery's identifier for this question.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "label": {
+          "description": "The short question text.",
+          "type": "string"
+        },
+        "required": {
+          "description": "Whether refinement can complete without an answer. A case cannot reach `ready` while a required question is unresolved.",
+          "type": "boolean"
+        },
+        "response_type": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ResponseType"
+            }
+          ],
+          "description": "The shape of answer accepted."
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "required",
+        "response_type"
+      ],
+      "type": "object"
+    },
+    "QuestionRequestStatus": {
+      "description": "Where a question request stands.",
+      "oneOf": [
+        {
+          "description": "Waiting for the user.",
+          "enum": [
+            "pending"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Answered; the case has resumed or is resuming.",
+          "enum": [
+            "answered"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Withdrawn because the case was cancelled or failed.",
+          "enum": [
+            "cancelled"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ResponseType": {
+      "description": "The shape of answer a question accepts.",
+      "oneOf": [
+        {
+          "description": "Any text.",
+          "enum": [
+            "free_text"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Exactly one of the declared choices.",
+          "enum": [
+            "single_choice"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Any subset of the declared choices.",
+          "enum": [
+            "multiple_choice"
+          ],
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "description": "A group of related questions the agent needs answered to continue.\n\nAt most one request is outstanding per case, enforced in storage. A request may carry a small related set, but the agent is expected to ask the minimum needed to make progress.",
+  "properties": {
+    "case_id": {
+      "description": "The case that needs the answers.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "created_at": {
+      "description": "When the request was raised, in UTC.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "id": {
+      "description": "Refinery's identifier for this request.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "A sentence framing why the agent is asking.",
+      "type": "string"
+    },
+    "questions": {
+      "description": "The questions, in display order.",
+      "items": {
+        "$ref": "#/definitions/Question"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "status": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/QuestionRequestStatus"
+        }
+      ],
+      "description": "Where the request stands."
+    }
+  },
+  "required": [
+    "case_id",
+    "created_at",
+    "id",
+    "prompt",
+    "questions",
+    "schema_version",
+    "status"
+  ],
+  "title": "QuestionRequest",
+  "type": "object"
+}

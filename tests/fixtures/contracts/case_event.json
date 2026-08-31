@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "018f6b3a-0000-7000-8000-000000000030",
+  "case_id": "018f6b3a-0000-7000-8000-000000000002",
+  "sequence": 7,
+  "occurred_at": "2026-08-31T10:05:00Z",
+  "type": "state_changed",
+  "from": "running",
+  "to": "awaiting_answer",
+  "transition": {
+    "kind": "question_raised",
+    "question_request_id": "018f6b3a-0000-7000-8000-000000000010"
+  }
+}

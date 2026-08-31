@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Refinery</title>
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="masthead">
+  <p class="wordmark">Refinery</p>
+  <nav aria-label="Sections">
+    <ul class="nav">
+      <li><a href="#/cases" data-route="cases">Cases</a></li>
+      <li><a href="#/repositories" data-route="repositories">Repositories</a></li>
+      <li><a href="#/settings" data-route="settings">Settings &amp; health</a></li>
+      <li><a href="#/logs" data-route="logs">Logs</a></li>
+    </ul>
+  </nav>
+  <p class="connection" id="connection" role="status">Connecting…</p>
+</header>
+
+<div class="announcer" id="announcer" role="status" aria-live="polite"></div>
+
+<main id="main" tabindex="-1">
+
+  <!-- Signed-out: no usable token in this browser session. -->
+  <section id="view-locked" class="view" hidden aria-labelledby="locked-heading">
+    <h1 id="locked-heading">This page needs a local access token</h1>
+    <p>
+      Refinery's interface is served over loopback and authenticated with a token
+      generated on this machine. Reopen it with <code>refinery open</code>, which
+      launches a browser at an address that already carries the token.
+    </p>
+    <form id="token-form" class="stack">
+      <label for="token-input">Or paste the local access token</label>
+      <input id="token-input" name="token" type="password" autocomplete="off" spellcheck="false" required>
+      <button type="submit">Unlock</button>
+    </form>
+  </section>
+
+  <!-- Case list -->
+  <section id="view-cases" class="view" hidden aria-labelledby="cases-heading">
+    <h1 id="cases-heading">Cases</h1>
+    <form id="case-filter" class="filter-bar">
+      <label for="filter-state">Filter by state</label>
+      <select id="filter-state" name="state">
+        <option value="">All states</option>
+      </select>
+      <button type="submit">Apply</button>
+    </form>
+    <p id="cases-empty" class="empty" hidden>No cases yet. A case appears here when Overlord or the local API submits a transcript.</p>
+    <table id="cases-table" class="grid">
+      <caption class="sr-only">Refinement cases, most recently updated first</caption>
+      <thead>
+        <tr>
+          <th scope="col">Case</th>
+          <th scope="col">State</th>
+          <th scope="col">Request</th>
+          <th scope="col">Updated</th>
+        </tr>
+      </thead>
+      <tbody id="cases-body"></tbody>
+    </table>
+  </section>
+
+  <!-- Case detail -->
+  <section id="view-case" class="view" hidden aria-labelledby="case-heading">
+    <p class="crumb"><a href="#/cases">&larr; All cases</a></p>
+    <div class="case-head">
+      <h1 id="case-heading">Case</h1>
+      <p class="state-line"><span class="badge" id="case-state">—</span> <span id="case-times" class="muted"></span></p>
+    </div>
+
+    <div class="actions" role="group" aria-label="Case actions">
+      <button type="button" id="action-copy" disabled>Copy refined prompt</button>
+      <button type="button" id="action-retry" disabled>Retry delivery</button>
+      <button type="button" id="action-cancel" disabled>Cancel case</button>
+    </div>
+
+    <section aria-labelledby="pending-heading" id="pending-section" hidden>
+      <h2 id="pending-heading">A question is waiting for you</h2>
+      <p id="pending-prompt" class="lede"></p>
+      <form id="answer-form" class="stack">
+        <div id="answer-questions"></div>
+        <div class="form-actions">
+          <button type="submit">Submit answers</button>
+        </div>
+        <p id="answer-error" class="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section aria-labelledby="output-heading" id="output-section" hidden>
+      <h2 id="output-heading">Refined prompt</h2>
+      <dl class="pairs" id="output-summary"></dl>
+      <label class="sr-only" for="output-text">Refined prompt text</label>
+      <textarea id="output-text" readonly rows="14" spellcheck="false"></textarea>
+    </section>
+
+    <section aria-labelledby="inputs-heading">
+      <h2 id="inputs-heading">Inputs</h2>
+      <dl class="pairs" id="case-inputs"></dl>
+      <h3>Transcript</h3>
+      <ol class="transcript" id="case-transcript"></ol>
+      <h3>Attachments</h3>
+      <p id="attachments-empty" class="empty" hidden>No attachments.</p>
+      <ul class="plain" id="case-attachments"></ul>
+    </section>
+
+    <section aria-labelledby="questions-heading">
+      <h2 id="questions-heading">Questions</h2>
+      <p id="questions-empty" class="empty" hidden>The agent has not needed to ask anything.</p>
+      <ol class="threads" id="case-questions"></ol>
+    </section>
+
+    <section aria-labelledby="deliveries-heading">
+      <h2 id="deliveries-heading">Deliveries</h2>
+      <p id="deliveries-empty" class="empty" hidden>No delivery has been attempted.</p>
+      <table class="grid" id="deliveries-table" hidden>
+        <caption class="sr-only">Delivery attempts for this case</caption>
+        <thead>
+          <tr>
+            <th scope="col">Destination</th>
+            <th scope="col">Status</th>
+            <th scope="col">Attempt</th>
+            <th scope="col">Detail</th>
+            <th scope="col">Updated</th>
+          </tr>
+        </thead>
+        <tbody id="deliveries-body"></tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="events-heading">
+      <h2 id="events-heading">History</h2>
+      <p id="events-note" class="muted"></p>
+      <ol class="events" id="case-events"></ol>
+    </section>
+  </section>
+
+  <!-- Repositories -->
+  <section id="view-repositories" class="view" hidden aria-labelledby="repositories-heading">
+    <h1 id="repositories-heading">Repositories</h1>
+    <p class="lede">Registered directories the agent may read from. Access is read-only and bounded by the policy fixed at registration.</p>
+    <p id="repositories-empty" class="empty" hidden>No repositories registered.</p>
+    <ul class="plain" id="repositories-list"></ul>
+
+    <h2 id="register-heading">Register a repository</h2>
+    <form id="repository-form" class="stack" aria-labelledby="register-heading">
+      <div class="field">
+        <label for="repo-path">Absolute path to the repository root</label>
+        <input id="repo-path" name="path" type="text" required spellcheck="false" autocomplete="off"
+               aria-describedby="repo-path-help" placeholder="/Users/you/Development/project">
+        <p id="repo-path-help" class="help">The path is canonicalized and symlink-resolved before it is stored.</p>
+      </div>
+      <div class="field">
+        <label for="repo-max-file">Largest file a read returns, in bytes</label>
+        <input id="repo-max-file" name="max_file_bytes" type="number" min="1" step="1" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="repo-max-results">Largest number of results per call</label>
+        <input id="repo-max-results" name="max_results" type="number" min="1" step="1" inputmode="numeric">
+      </div>
+      <div class="field checkbox">
+        <label for="repo-ignore">
+          <input id="repo-ignore" name="respect_ignore_files" type="checkbox" checked>
+          Honour <code>.gitignore</code> and related ignore files
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit">Register</button>
+      </div>
+      <p id="repository-error" class="error" role="alert" hidden></p>
+    </form>
+  </section>
+
+  <!-- Settings and health -->
+  <section id="view-settings" class="view" hidden aria-labelledby="settings-heading">
+    <h1 id="settings-heading">Settings &amp; health</h1>
+    <h2 id="health-heading">Health</h2>
+    <dl class="pairs" id="health-pairs" aria-labelledby="health-heading"></dl>
+    <h2 id="counts-heading">Cases by state</h2>
+    <p id="counts-empty" class="empty" hidden>No cases yet.</p>
+    <dl class="pairs" id="health-counts" aria-labelledby="counts-heading"></dl>
+    <h2 id="jobs-heading">Jobs by status</h2>
+    <p id="jobs-empty" class="empty" hidden>No jobs queued.</p>
+    <dl class="pairs" id="health-jobs" aria-labelledby="jobs-heading"></dl>
+    <h2 id="config-heading">Configuration</h2>
+    <p class="lede">Edit these in the settings file, then restart the service. Secrets are never shown here.</p>
+    <dl class="pairs" id="settings-pairs" aria-labelledby="config-heading"></dl>
+  </section>
+
+  <!-- Logs -->
+  <section id="view-logs" class="view" hidden aria-labelledby="logs-heading">
+    <h1 id="logs-heading">Logs</h1>
+    <form id="logs-form" class="filter-bar">
+      <label for="logs-lines">Lines to show</label>
+      <input id="logs-lines" name="lines" type="number" min="1" max="2000" step="1" value="200" inputmode="numeric">
+      <button type="submit">Refresh</button>
+    </form>
+    <label class="sr-only" for="logs-text">Recent log output</label>
+    <textarea id="logs-text" readonly rows="24" spellcheck="false"></textarea>
+  </section>
+
+  <p id="page-error" class="error" role="alert" hidden></p>
+</main>
+
+<!--
+  Every dynamic node in this page is cloned from one of these templates and
+  filled with textContent. Question labels, prompt bodies, and log lines are
+  model- or caller-supplied text, so nothing here is ever built by assigning
+  markup from data.
+-->
+
+<template id="tpl-case-row">
+  <tr>
+    <th scope="row"><a class="case-link" href="#/cases/"><span class="sr-only">Case </span><span class="case-id"></span></a></th>
+    <td><span class="badge case-state"></span></td>
+    <td class="case-request"></td>
+    <td class="case-updated"></td>
+  </tr>
+</template>
+
+<template id="tpl-pair">
+  <div class="pair">
+    <dt></dt>
+    <dd></dd>
+  </div>
+</template>
+
+<template id="tpl-transcript-message">
+  <li class="message">
+    <p class="message-role"></p>
+    <p class="message-text"></p>
+  </li>
+</template>
+
+<template id="tpl-attachment">
+  <li class="attachment">
+    <span class="attachment-name"></span>
+    <span class="muted attachment-detail"></span>
+  </li>
+</template>
+
+<template id="tpl-question-text">
+  <div class="question">
+    <label>
+      <span class="q-label"></span>
+      <span class="q-help help"></span>
+      <textarea class="q-input" rows="3"></textarea>
+    </label>
+  </div>
+</template>
+
+<template id="tpl-question-choice">
+  <fieldset class="question">
+    <legend class="q-label"></legend>
+    <p class="q-help help"></p>
+    <div class="choices"></div>
+  </fieldset>
+</template>
+
+<template id="tpl-choice">
+  <label class="choice">
+    <input class="choice-input" type="radio">
+    <span class="choice-label"></span>
+  </label>
+</template>
+
+<template id="tpl-thread">
+  <li class="thread">
+    <p class="thread-prompt"></p>
+    <p class="muted thread-meta"></p>
+    <ul class="plain thread-answers"></ul>
+  </li>
+</template>
+
+<template id="tpl-thread-answer">
+  <li class="thread-answer">
+    <span class="thread-question"></span>
+    <span class="thread-value"></span>
+    <span class="muted thread-by"></span>
+  </li>
+</template>
+
+<template id="tpl-delivery-row">
+  <tr>
+    <th scope="row" class="delivery-destination"></th>
+    <td><span class="badge delivery-status"></span></td>
+    <td class="delivery-attempt"></td>
+    <td class="delivery-detail"></td>
+    <td class="delivery-updated"></td>
+  </tr>
+</template>
+
+<template id="tpl-event">
+  <li class="event">
+    <span class="event-sequence"></span>
+    <span class="event-kind"></span>
+    <span class="event-detail"></span>
+    <time class="event-time"></time>
+  </li>
+</template>
+
+<template id="tpl-repository">
+  <li class="repository">
+    <p class="repository-root"></p>
+    <p class="muted repository-policy"></p>
+  </li>
+</template>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>

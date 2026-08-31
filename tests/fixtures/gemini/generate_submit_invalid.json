@@ -1,0 +1,28 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "functionCall": {
+              "name": "submit_refined_prompt",
+              "args": {
+                "title": "Retries",
+                "prompt": "See the discussion above and do what was agreed.",
+                "objective": "",
+                "acceptance_criteria": []
+              }
+            }
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 3010,
+    "candidatesTokenCount": 27,
+    "totalTokenCount": 3037
+  }
+}

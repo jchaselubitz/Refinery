@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "RetryClass": {
+      "description": "How the caller should treat a failure.",
+      "oneOf": [
+        {
+          "description": "A transient failure. The operation may be retried with backoff.",
+          "enum": [
+            "retryable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A permanent failure. Retrying the same operation cannot succeed.",
+          "enum": [
+            "non_retryable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Progress requires a person: missing credentials, an unanswered question, or a policy decision only the user can make.",
+          "enum": [
+            "needs_user"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ValidationCode": {
+      "description": "The stable reason a value was rejected.",
+      "oneOf": [
+        {
+          "description": "A required value was absent or blank.",
+          "enum": [
+            "empty"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A value exceeded its contract limit.",
+          "enum": [
+            "too_long"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A collection had more items than its contract limit.",
+          "enum": [
+            "too_many"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A collection had fewer items than the contract requires.",
+          "enum": [
+            "too_few"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A value was outside the set the contract allows.",
+          "enum": [
+            "not_allowed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A value was syntactically malformed.",
+          "enum": [
+            "malformed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A value repeated where the contract requires uniqueness.",
+          "enum": [
+            "duplicate"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A referenced entity does not exist.",
+          "enum": [
+            "unknown"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A required question has not been answered.",
+          "enum": [
+            "unanswered"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The schema version is not one this build understands.",
+          "enum": [
+            "unsupported_schema_version"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The value carried provider or transport markup that must never reach a destination.",
+          "enum": [
+            "provider_markup"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ValidationIssue": {
+      "description": "One thing wrong with a contract value.",
+      "properties": {
+        "code": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ValidationCode"
+            }
+          ],
+          "description": "A stable code callers may branch on, for example `empty` or `too_long`."
+        },
+        "field": {
+          "description": "Dotted path to the offending field, for example `acceptance_criteria[0]`. Empty when the issue is about the value as a whole.",
+          "type": "string"
+        },
+        "message": {
+          "description": "A sentence a person can act on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "field",
+        "message"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "The body of any failed API response.",
+  "properties": {
+    "code": {
+      "description": "The stable machine-readable code, for example `invalid_request`.",
+      "type": "string"
+    },
+    "issues": {
+      "description": "Per-field detail, when the failure was contract validation.",
+      "items": {
+        "$ref": "#/definitions/ValidationIssue"
+      },
+      "type": "array"
+    },
+    "message": {
+      "description": "A person-readable, secret-free sentence.",
+      "type": "string"
+    },
+    "retry_class": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/RetryClass"
+        }
+      ],
+      "description": "Whether repeating the request could help."
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "code",
+    "message",
+    "retry_class",
+    "schema_version"
+  ],
+  "title": "ApiError",
+  "type": "object"
+}

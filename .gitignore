@@ -1,0 +1,5 @@
+.overlord/tmp/
+.overlord/logs/
+/target
+
+.env

@@ -1,0 +1,15 @@
+{
+  "transcript": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Add bounded retries to the HTTP client. Use three attempts with exponential backoff, but only for idempotent GET requests and only for 429 or 503 responses. POST must not retry. Make the timing deterministic in tests."
+      },
+      {
+        "role": "assistant",
+        "content": "The current client sends once and tests cover only a successful response."
+      }
+    ]
+  },
+  "questions_asked": []
+}

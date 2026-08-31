@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "title": "Resume imports from a transactional checkpoint",
+  "prompt": "Persist the importer's last committed batch in the existing SQLite database and resume from that checkpoint after restart. Write the checkpoint in the same transaction as the imported batch so a crash can neither skip nor duplicate rows.",
+  "objective": "A restarted import continues after the last committed batch with exactly once row application.",
+  "context": [
+    "The current importer starts from zero after a crash.",
+    "The user selected the existing SQLite database as the checkpoint location."
+  ],
+  "requirements": [
+    "Store the checkpoint in the same transaction as each committed batch.",
+    "Read the latest checkpoint before selecting the first batch on startup.",
+    "Treat an absent checkpoint as a fresh import."
+  ],
+  "constraints": ["Do not introduce Redis or any new service."],
+  "acceptance_criteria": [
+    "After a forced restart, the importer resumes after the last committed batch.",
+    "A crash before commit replays the whole uncommitted batch and produces exactly-once final rows.",
+    "A new import with no checkpoint retains the current first-run behavior."
+  ],
+  "references": [
+    {"kind": "repository_path", "path": "src/importer.rs", "note": "batch loop and restart path"},
+    {"kind": "repository_path", "path": "src/database.rs", "note": "SQLite transaction boundary"}
+  ],
+  "assumptions": ["Each batch is already committed atomically."],
+  "unresolved_questions": []
+}

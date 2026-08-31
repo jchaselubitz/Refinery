@@ -1,0 +1,36 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "functionCall": {
+              "name": "ask_user",
+              "args": {
+                "prompt": "One thing is ambiguous before I can write the prompt.",
+                "questions": [
+                  {
+                    "label": "Which endpoint should the retries cover?",
+                    "response_type": "single_choice",
+                    "choices": [
+                      { "value": "submit", "label": "Submit only" },
+                      { "value": "all", "label": "Every outbound call" }
+                    ],
+                    "required": true
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 2620,
+    "candidatesTokenCount": 61,
+    "totalTokenCount": 2681
+  }
+}

@@ -1,0 +1,497 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "AttachmentInput": {
+      "description": "An attachment as submitted.\n\nThe byte source is flattened onto the attachment, so unknown-field rejection is enforced by the `AttachmentSource` variants rather than by `deny_unknown_fields` here, which Serde does not allow alongside `flatten`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Text supplied directly in the request.",
+          "properties": {
+            "source": {
+              "enum": [
+                "inline_text"
+              ],
+              "type": "string"
+            },
+            "text": {
+              "description": "The text content.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Bytes supplied directly in the request, base64-encoded.",
+          "properties": {
+            "data": {
+              "description": "The base64-encoded bytes.",
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "inline_base64"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "source"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A file on the same machine, read once at import time. Only sources on this machine can use this form, and the path is read exactly once into the case-owned media store rather than referenced later.",
+          "properties": {
+            "path": {
+              "description": "Absolute path to the file.",
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "local_path"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "source"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "digest_sha256": {
+          "description": "The lowercase hex SHA-256 the source claims, verified at import.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/AttachmentKind"
+            }
+          ],
+          "description": "The category the source claims."
+        },
+        "media_type": {
+          "description": "The IANA media type the source claims, verified at import.",
+          "type": "string"
+        },
+        "name": {
+          "description": "A display name, typically the original file name.",
+          "type": "string"
+        },
+        "size_bytes": {
+          "description": "The size the source claims, verified at import.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "media_type",
+        "name"
+      ],
+      "type": "object"
+    },
+    "AttachmentKind": {
+      "description": "The broad category of an attachment, which decides which backend capabilities a case requires.",
+      "oneOf": [
+        {
+          "description": "Plain text carried alongside the transcript.",
+          "enum": [
+            "text"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A still image.",
+          "enum": [
+            "image"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A recording; requires native video input from the backend.",
+          "enum": [
+            "video"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Any other file the destination may need to know about.",
+          "enum": [
+            "file"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Destination": {
+      "description": "Where a completed refinement should be sent.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Submit the refined prompt to a local Overlord instance.",
+          "properties": {
+            "base_url": {
+              "description": "The loopback base URL of the Overlord instance.",
+              "type": "string"
+            },
+            "bearer_token": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SecretString"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The bearer token for the Overlord endpoint."
+            },
+            "kind": {
+              "enum": [
+                "overlord"
+              ],
+              "type": "string"
+            },
+            "mission_id": {
+              "description": "The mission the refined prompt belongs to, when known at submission.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "objective_id": {
+              "description": "The objective the refined prompt belongs to, when known.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "base_url",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Write the refined prompt to a local file.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "local_export"
+              ],
+              "type": "string"
+            },
+            "path": {
+              "description": "Absolute path of the file to write.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MessageRole": {
+      "description": "Who produced a transcript message in the source conversation.",
+      "oneOf": [
+        {
+          "description": "A person.",
+          "enum": [
+            "user"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "An assistant or agent in the source conversation.",
+          "enum": [
+            "assistant"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "System or instruction text from the source system.",
+          "enum": [
+            "system"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Tool or command output quoted into the conversation.",
+          "enum": [
+            "tool"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "SecretString": {
+      "description": "A credential. Accepted on submission and never returned, logged, or displayed.",
+      "type": "string",
+      "writeOnly": true
+    },
+    "SourceCallback": {
+      "additionalProperties": false,
+      "description": "Where Refinery sends questions for a case that came from a source with its own interface.\n\nThe local interface needs no callback: it reads the case's event stream. A source such as Overlord declares one at submission so a question reaches the person where they already are.",
+      "properties": {
+        "bearer_token": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SecretString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The bearer token to present, when the source requires one."
+        },
+        "questions_url": {
+          "description": "The loopback URL that receives question notifications.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "questions_url"
+      ],
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "description": "Who submitted a case and how to reach them.",
+      "properties": {
+        "callback": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SourceCallback"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where to deliver questions, when the source handles them itself."
+        },
+        "instance": {
+          "description": "Which instance of that system, so two Overlord installations on one machine stay distinguishable.",
+          "type": "string"
+        },
+        "system": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/SourceSystem"
+            }
+          ],
+          "description": "The submitting system."
+        }
+      },
+      "required": [
+        "instance",
+        "system"
+      ],
+      "type": "object"
+    },
+    "SourceSystem": {
+      "description": "The system that submitted a case.",
+      "oneOf": [
+        {
+          "description": "An Overlord instance on this machine.",
+          "enum": [
+            "overlord"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Refinery's own local browser interface.",
+          "enum": [
+            "local_ui"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Refinery's command line.",
+          "enum": [
+            "cli"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Any other local caller, named by the caller.",
+          "properties": {
+            "other": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "other"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Transcript": {
+      "additionalProperties": false,
+      "description": "An ordered conversation.",
+      "properties": {
+        "messages": {
+          "description": "Messages in the order they occurred, oldest first.",
+          "items": {
+            "$ref": "#/definitions/TranscriptMessage"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "messages"
+      ],
+      "type": "object"
+    },
+    "TranscriptMessage": {
+      "additionalProperties": false,
+      "description": "One message in a submitted transcript.",
+      "properties": {
+        "author": {
+          "description": "A display name for the author, when the source supplies one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content": {
+          "description": "The message text.",
+          "type": "string"
+        },
+        "created_at": {
+          "description": "When the message was produced, in UTC.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "The source system's identifier for this message, when it has one. Carried so a destination can correlate back, never interpreted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/MessageRole"
+            }
+          ],
+          "description": "Who produced the message."
+        }
+      },
+      "required": [
+        "content",
+        "role"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "A versioned refinement submission.",
+  "properties": {
+    "attachments": {
+      "description": "Attachments to import into the case-owned media store.",
+      "items": {
+        "$ref": "#/definitions/AttachmentInput"
+      },
+      "type": "array"
+    },
+    "destination": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Destination"
+        }
+      ],
+      "description": "Where the completed result should be sent."
+    },
+    "idempotency_key": {
+      "description": "The retry-safe submission key. The same key with equivalent content returns the existing case; the same key with different content is a conflict.",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Bounded source-specific correlation data, carried through to delivery and never interpreted.",
+      "type": "object"
+    },
+    "repository": {
+      "description": "The registered repository the agent may read, when the case is grounded in code. Repositories are registered out of band; a request names one, it never introduces one.",
+      "format": "uuid",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "request_id": {
+      "description": "The source's stable identifier for the thing being refined.",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "The contract version this request is written against.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "source": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SourceRef"
+        }
+      ],
+      "description": "Who submitted, and where questions go."
+    },
+    "task_hint": {
+      "description": "A short description of the intended task, when the source has one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transcript": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Transcript"
+        }
+      ],
+      "description": "The conversation to refine."
+    }
+  },
+  "required": [
+    "destination",
+    "idempotency_key",
+    "request_id",
+    "schema_version",
+    "source",
+    "transcript"
+  ],
+  "title": "RefinementRequest",
+  "type": "object"
+}

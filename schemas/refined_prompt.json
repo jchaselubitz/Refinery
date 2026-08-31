@@ -1,0 +1,175 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "PromptReference": {
+      "description": "A pointer the destination may need to follow.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A path inside the case's registered repository, relative to its root.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "repository_path"
+              ],
+              "type": "string"
+            },
+            "note": {
+              "description": "Why it matters.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "path": {
+              "description": "The repository-relative path.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An attachment imported into the case.",
+          "properties": {
+            "attachment_id": {
+              "description": "The attachment.",
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "attachment"
+              ],
+              "type": "string"
+            },
+            "note": {
+              "description": "Why it matters.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "attachment_id",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Anything else worth naming, such as a ticket.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "external"
+              ],
+              "type": "string"
+            },
+            "note": {
+              "description": "Why it matters.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": "The reference text or URL.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "description": "The agent's output: a self-contained instruction for a destination agent.",
+  "properties": {
+    "acceptance_criteria": {
+      "description": "Observable conditions for completion. Never empty.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "assumptions": {
+      "description": "Assumptions made during refinement.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "constraints": {
+      "description": "Technical, product, and operational boundaries.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "context": {
+      "description": "Relevant findings from the transcript, repository, and media.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "objective": {
+      "description": "The intended outcome, in one or two sentences.",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "The self-contained instruction. This is what a destination executes.",
+      "type": "string"
+    },
+    "references": {
+      "description": "Local paths and attachments the destination may need.",
+      "items": {
+        "$ref": "#/definitions/PromptReference"
+      },
+      "type": "array"
+    },
+    "requirements": {
+      "description": "Explicit functional requirements.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "description": "The contract version.\n\nUnlike the source-supplied contracts, this defaults: the model produces the content and Refinery stamps the version, so contract bookkeeping is never something a generation has to get right.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "title": {
+      "description": "A concise task title.",
+      "type": "string"
+    },
+    "unresolved_questions": {
+      "description": "Anything deliberately left open, stated so the destination is not surprised by it.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "acceptance_criteria",
+    "objective",
+    "prompt",
+    "title"
+  ],
+  "title": "RefinedPrompt",
+  "type": "object"
+}

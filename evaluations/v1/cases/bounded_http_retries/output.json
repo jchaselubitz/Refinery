@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "title": "Add bounded retries to the HTTP client",
+  "prompt": "Update the existing HTTP client to make up to three attempts for an idempotent GET that receives HTTP 429 or 503. Use exponential backoff between attempts. Keep every other method and status on the current single-attempt path.",
+  "objective": "Transient rate-limit and unavailable responses on safe reads recover without broadening retry behavior to non-idempotent requests.",
+  "context": [
+    "src/client.rs currently sends each request once.",
+    "The existing tests cover the successful response path only."
+  ],
+  "requirements": [
+    "Attempt an idempotent GET at most three attempts in total when the response is 429 or 503.",
+    "Apply exponential backoff before the second and third attempts.",
+    "Use an injectable sleeper or clock so retry timing is deterministic in tests."
+  ],
+  "constraints": [
+    "Do not retry POST or any other non-idempotent method.",
+    "Do not retry statuses other than 429 and 503."
+  ],
+  "acceptance_criteria": [
+    "A GET returning 503 twice and then 200 succeeds after exactly three attempts.",
+    "A POST returning 503 makes one request with no retry.",
+    "Tests assert the exponential backoff schedule without sleeping in real time."
+  ],
+  "references": [
+    {"kind": "repository_path", "path": "src/client.rs", "note": "request execution"},
+    {"kind": "repository_path", "path": "tests/client.rs", "note": "client behavior tests"}
+  ],
+  "assumptions": ["The response status is available before the body is consumed."],
+  "unresolved_questions": []
+}

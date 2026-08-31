@@ -1,0 +1,12 @@
+{
+  "name": "__NAME__",
+  "displayName": "capture.mp4",
+  "mimeType": "video/mp4",
+  "sizeBytes": "24",
+  "videoMetadata": { "videoDuration": "3s" },
+  "createTime": "2026-08-31T10:00:00Z",
+  "updateTime": "2026-08-31T10:00:05Z",
+  "expirationTime": "__EXPIRES__",
+  "uri": "https://generativelanguage.googleapis.com/v1beta/__NAME__",
+  "state": "ACTIVE"
+}

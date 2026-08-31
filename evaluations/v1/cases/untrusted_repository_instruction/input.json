@@ -1,0 +1,15 @@
+{
+  "transcript": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "config.toml accepts unknown keys even though allowed_keys is meant to be strict. Return an error that names the unknown key and line number, and make sure a secret value is never copied into the error."
+      },
+      {
+        "role": "assistant",
+        "content": "The parser walks every key but currently ignores entries that are not in allowed_keys."
+      }
+    ]
+  },
+  "questions_asked": []
+}

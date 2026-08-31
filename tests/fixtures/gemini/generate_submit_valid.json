@@ -1,0 +1,47 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "functionCall": {
+              "name": "submit_refined_prompt",
+              "args": {
+                "title": "Add bounded retries to the outbound client",
+                "prompt": "Add bounded retry handling to the outbound HTTP client in src/client.rs. Retry only on transport failures and 5xx responses, cap attempts at three, and use exponential backoff with jitter. Do not retry 4xx responses.",
+                "objective": "Transient network failures stop surfacing as user-visible errors.",
+                "context": [
+                  "src/client.rs currently issues a single request with no retry.",
+                  "The transcript describes intermittent failures during deploys."
+                ],
+                "requirements": [
+                  "Retry transport errors and 5xx responses at most three times.",
+                  "Use exponential backoff with jitter between attempts."
+                ],
+                "constraints": [
+                  "Do not add a new dependency.",
+                  "Do not retry non-idempotent requests."
+                ],
+                "acceptance_criteria": [
+                  "A 503 response is retried and the call succeeds when the third attempt returns 200.",
+                  "A 400 response is returned to the caller without a retry."
+                ],
+                "assumptions": [
+                  "The existing client is the only outbound HTTP path."
+                ],
+                "unresolved_questions": []
+              }
+            }
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 3104,
+    "candidatesTokenCount": 214,
+    "totalTokenCount": 3318
+  }
+}

@@ -1,0 +1,954 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AttachmentState": {
+      "description": "Where an attachment stands between arriving and being usable by a backend.\n\n`Expired` is not a failure. Provider file uploads expire server-side; the bytes remain in the local media store, so an expired attachment is re-uploaded on next use and the case continues.",
+      "oneOf": [
+        {
+          "description": "Bytes are in the case-owned media store and verified.",
+          "enum": [
+            "imported"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "An upload to the provider is in flight or awaiting activation.",
+          "enum": [
+            "uploading"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The provider holds a live copy the backend can reference.",
+          "enum": [
+            "available"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The provider copy expired; re-upload from the media store on next use.",
+          "enum": [
+            "expired"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Import or upload refused the attachment; it will never be used.",
+          "enum": [
+            "rejected"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "CaseState": {
+      "description": "Where a case stands.\n\nThe happy path is `received -> preparing -> running -> validating -> ready -> delivering -> completed`, with `running <-> awaiting_answer` repeating as often as the agent needs answers.",
+      "oneOf": [
+        {
+          "description": "Accepted and durable; nothing has been done with it yet.",
+          "enum": [
+            "received"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Importing attachments, resolving the repository, selecting a backend.",
+          "enum": [
+            "preparing"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The agent backend is working.",
+          "enum": [
+            "running"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A question is outstanding; no job holds the case.",
+          "enum": [
+            "awaiting_answer"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A candidate output is being validated.",
+          "enum": [
+            "validating"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A valid output exists and delivery has not been attempted.",
+          "enum": [
+            "ready"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Delivery is in progress, including between scheduled retries.",
+          "enum": [
+            "delivering"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The destination accepted the refined prompt.",
+          "enum": [
+            "completed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The case stopped without delivering. Any output produced is preserved, so a user may retry delivery from here.",
+          "enum": [
+            "failed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Stopped at the user's request.",
+          "enum": [
+            "cancelled"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "CaseTransition": {
+      "description": "A thing that happens to a case and may move it to another state.\n\nThis is the input alphabet of the state machine. It is intentionally small and closed: anything that is only an observation, not a lifecycle change, is a [`CaseEventPayload`] variant instead.",
+      "oneOf": [
+        {
+          "description": "Preparation started: attachments, repository, backend selection.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "preparation_started"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Preparation finished and the backend began work.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "backend_started"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The agent asked the user something and stopped.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "question_raised"
+              ],
+              "type": "string"
+            },
+            "question_request_id": {
+              "description": "The outstanding request.",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "question_request_id"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Answers arrived and the case resumes. This edge repeats.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "answers_applied"
+              ],
+              "type": "string"
+            },
+            "question_request_id": {
+              "description": "The request that was answered.",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "question_request_id"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The agent submitted a candidate refined prompt.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "output_submitted"
+              ],
+              "type": "string"
+            },
+            "output_id": {
+              "description": "The candidate output.",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "output_id"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The candidate passed deterministic validation.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "validation_succeeded"
+              ],
+              "type": "string"
+            },
+            "output_id": {
+              "description": "The accepted output.",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "output_id"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The candidate failed validation and the agent gets its one corrective retry, so the case returns to `running`.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "validation_rejected_with_retry"
+              ],
+              "type": "string"
+            },
+            "output_id": {
+              "description": "The rejected output.",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "output_id"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A delivery attempt began. Legal from `ready` for the first attempt and from `failed` when a person retries.",
+          "properties": {
+            "delivery_id": {
+              "description": "The delivery this attempt belongs to.",
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "delivery_started"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "delivery_id",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "An attempt failed and another is scheduled; the case stays in `delivering`.",
+          "properties": {
+            "delivery_id": {
+              "description": "The delivery that failed.",
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "delivery_attempt_failed"
+              ],
+              "type": "string"
+            },
+            "retry_class": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/RetryClass"
+                }
+              ],
+              "description": "How the failure was classified."
+            }
+          },
+          "required": [
+            "delivery_id",
+            "kind",
+            "retry_class"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The destination accepted the prompt.",
+          "properties": {
+            "delivery_id": {
+              "description": "The successful delivery.",
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "delivery_succeeded"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "delivery_id",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Delivery gave up: retries exhausted or a non-retryable failure. The output is preserved for a user-initiated retry.",
+          "properties": {
+            "delivery_id": {
+              "description": "The delivery that gave up.",
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "delivery_exhausted"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "delivery_id",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The case failed for any other reason.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "failed"
+              ],
+              "type": "string"
+            },
+            "reason": {
+              "description": "A person-readable, secret-free reason.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The user cancelled the case.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "cancelled"
+              ],
+              "type": "string"
+            },
+            "reason": {
+              "description": "Why, when the user or caller said.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Outcome": {
+      "description": "How a recorded operation turned out.",
+      "oneOf": [
+        {
+          "description": "It worked.",
+          "enum": [
+            "succeeded"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "It did not.",
+          "enum": [
+            "failed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Policy refused it before it ran.",
+          "enum": [
+            "denied"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "RetryClass": {
+      "description": "How the caller should treat a failure.",
+      "oneOf": [
+        {
+          "description": "A transient failure. The operation may be retried with backoff.",
+          "enum": [
+            "retryable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A permanent failure. Retrying the same operation cannot succeed.",
+          "enum": [
+            "non_retryable"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Progress requires a person: missing credentials, an unanswered question, or a policy decision only the user can make.",
+          "enum": [
+            "needs_user"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "UsageMetadata": {
+      "description": "Provider usage recorded for a run step.",
+      "properties": {
+        "input_tokens": {
+          "description": "Tokens in the request.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "output_tokens": {
+          "description": "Tokens in the response.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "total_tokens": {
+          "description": "Tokens the provider billed in total, when it reports one.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "description": "One append-only record in a case's history.",
+  "oneOf": [
+    {
+      "description": "The case was accepted.",
+      "properties": {
+        "attachment_count": {
+          "description": "How many attachments arrived.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "has_repository": {
+          "description": "Whether the case names a repository.",
+          "type": "boolean"
+        },
+        "request_id": {
+          "description": "The source's request identifier.",
+          "type": "string"
+        },
+        "source_system": {
+          "description": "The submitting system, as a wire string.",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "case_received"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "attachment_count",
+        "has_repository",
+        "request_id",
+        "source_system",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "The case moved from one state to another.",
+      "properties": {
+        "from": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/CaseState"
+            }
+          ],
+          "description": "The state before."
+        },
+        "to": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/CaseState"
+            }
+          ],
+          "description": "The state after."
+        },
+        "transition": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/CaseTransition"
+            }
+          ],
+          "description": "What caused the move."
+        },
+        "type": {
+          "enum": [
+            "state_changed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "transition",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "An attachment was imported into the case media store.",
+      "properties": {
+        "attachment_id": {
+          "description": "The attachment.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "media_type": {
+          "description": "Its measured media type.",
+          "type": "string"
+        },
+        "size_bytes": {
+          "description": "Its measured size.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "attachment_imported"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "attachment_id",
+        "media_type",
+        "size_bytes",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "An attachment's provider upload state changed.",
+      "properties": {
+        "attachment_id": {
+          "description": "The attachment.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "state": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/AttachmentState"
+            }
+          ],
+          "description": "The new state."
+        },
+        "type": {
+          "enum": [
+            "attachment_state_changed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "attachment_id",
+        "state",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "A repository tool ran. Arguments are recorded as a digest, not verbatim, so the audit trail cannot itself become a copy of repository content.",
+      "properties": {
+        "arguments_digest": {
+          "description": "A digest of the arguments.",
+          "type": "string"
+        },
+        "outcome": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Outcome"
+            }
+          ],
+          "description": "How it turned out."
+        },
+        "result_bytes": {
+          "description": "Bytes returned to the model.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "tool": {
+          "description": "The tool name.",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "repository_tool_invoked"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "arguments_digest",
+        "outcome",
+        "result_bytes",
+        "tool",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "One provider request completed.",
+      "properties": {
+        "backend_id": {
+          "description": "The backend identifier, for example `gemini`.",
+          "type": "string"
+        },
+        "outcome": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Outcome"
+            }
+          ],
+          "description": "How it turned out."
+        },
+        "run_id": {
+          "description": "The run the call belongs to.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "step": {
+          "description": "Which step of the conversation.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "provider_call_completed"
+          ],
+          "type": "string"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UsageMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Reported usage, when the provider supplies it."
+        }
+      },
+      "required": [
+        "backend_id",
+        "outcome",
+        "run_id",
+        "step",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "The agent raised a question request.",
+      "properties": {
+        "question_count": {
+          "description": "How many questions it contains.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "question_request_id": {
+          "description": "The request.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "question_requested"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_count",
+        "question_request_id",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "A question request was sent to a source's callback.",
+      "properties": {
+        "outcome": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Outcome"
+            }
+          ],
+          "description": "How it turned out."
+        },
+        "question_request_id": {
+          "description": "The request.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "target": {
+          "description": "Where it went, for example `overlord` or `local_ui`.",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "question_forwarded"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome",
+        "question_request_id",
+        "target",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "Answers were validated and stored.",
+      "properties": {
+        "answer_count": {
+          "description": "How many answers arrived.",
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "question_request_id": {
+          "description": "The request answered.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "answers_recorded"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer_count",
+        "question_request_id",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "A candidate output was recorded with its validation result.",
+      "properties": {
+        "issues": {
+          "description": "The issues found, when it did not.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "output_id": {
+          "description": "The output.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "output_recorded"
+          ],
+          "type": "string"
+        },
+        "valid": {
+          "description": "Whether it passed deterministic validation.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "output_id",
+        "type",
+        "valid"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "One delivery attempt finished.",
+      "properties": {
+        "attempt": {
+          "description": "Which attempt this was, counting from one.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "delivery_id": {
+          "description": "The delivery.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "destination": {
+          "description": "The destination kind.",
+          "type": "string"
+        },
+        "outcome": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Outcome"
+            }
+          ],
+          "description": "How it turned out."
+        },
+        "retry_class": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RetryClass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How a failure was classified."
+        },
+        "type": {
+          "enum": [
+            "delivery_attempted"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt",
+        "delivery_id",
+        "destination",
+        "outcome",
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "Something worth recording that is not any of the above.",
+      "properties": {
+        "message": {
+          "description": "A secret-free sentence.",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "note"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "type"
+      ],
+      "type": "object"
+    }
+  ],
+  "properties": {
+    "case_id": {
+      "description": "The case it belongs to.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "id": {
+      "description": "The event's identifier.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "occurred_at": {
+      "description": "When it happened, in UTC.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "sequence": {
+      "description": "Position in the case's history, counting from one. Explicit rather than implied by timestamp, so clients can page and resume a stream exactly.",
+      "format": "uint64",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "case_id",
+    "id",
+    "occurred_at",
+    "schema_version",
+    "sequence"
+  ],
+  "title": "CaseEvent",
+  "type": "object"
+}

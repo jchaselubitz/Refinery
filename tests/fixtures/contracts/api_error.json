@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "code": "invalid_request",
+  "message": "the request did not satisfy the contract",
+  "retry_class": "non_retryable",
+  "issues": [
+    {
+      "field": "transcript",
+      "code": "empty",
+      "message": "a refinement needs at least one transcript message"
+    }
+  ]
+}

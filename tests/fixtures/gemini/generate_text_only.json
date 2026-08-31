@@ -1,0 +1,18 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          { "text": "Here is the refined prompt: add retries to the client." }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 2400,
+    "candidatesTokenCount": 14,
+    "totalTokenCount": 2414
+  }
+}

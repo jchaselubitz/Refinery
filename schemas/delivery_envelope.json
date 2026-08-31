@@ -1,0 +1,293 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "DeliveredAttachment": {
+      "additionalProperties": false,
+      "description": "An attachment as a destination sees it: named and described, never inlined. The bytes stay in Refinery's case-owned media store.",
+      "properties": {
+        "digest_sha256": {
+          "description": "The measured digest, so a destination can verify a copy it fetches.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Refinery's identifier for the attachment.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "media_type": {
+          "description": "The measured media type.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The display name.",
+          "type": "string"
+        },
+        "size_bytes": {
+          "description": "The measured size.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "digest_sha256",
+        "id",
+        "media_type",
+        "name",
+        "size_bytes"
+      ],
+      "type": "object"
+    },
+    "PromptReference": {
+      "description": "A pointer the destination may need to follow.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A path inside the case's registered repository, relative to its root.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "repository_path"
+              ],
+              "type": "string"
+            },
+            "note": {
+              "description": "Why it matters.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "path": {
+              "description": "The repository-relative path.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An attachment imported into the case.",
+          "properties": {
+            "attachment_id": {
+              "description": "The attachment.",
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "attachment"
+              ],
+              "type": "string"
+            },
+            "note": {
+              "description": "Why it matters.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "attachment_id",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Anything else worth naming, such as a ticket.",
+          "properties": {
+            "kind": {
+              "enum": [
+                "external"
+              ],
+              "type": "string"
+            },
+            "note": {
+              "description": "Why it matters.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": "The reference text or URL.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RefinedPrompt": {
+      "additionalProperties": false,
+      "description": "The agent's output: a self-contained instruction for a destination agent.",
+      "properties": {
+        "acceptance_criteria": {
+          "description": "Observable conditions for completion. Never empty.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "assumptions": {
+          "description": "Assumptions made during refinement.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "constraints": {
+          "description": "Technical, product, and operational boundaries.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "context": {
+          "description": "Relevant findings from the transcript, repository, and media.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "objective": {
+          "description": "The intended outcome, in one or two sentences.",
+          "type": "string"
+        },
+        "prompt": {
+          "description": "The self-contained instruction. This is what a destination executes.",
+          "type": "string"
+        },
+        "references": {
+          "description": "Local paths and attachments the destination may need.",
+          "items": {
+            "$ref": "#/definitions/PromptReference"
+          },
+          "type": "array"
+        },
+        "requirements": {
+          "description": "Explicit functional requirements.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "description": "The contract version.\n\nUnlike the source-supplied contracts, this defaults: the model produces the content and Refinery stamps the version, so contract bookkeeping is never something a generation has to get right.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "title": {
+          "description": "A concise task title.",
+          "type": "string"
+        },
+        "unresolved_questions": {
+          "description": "Anything deliberately left open, stated so the destination is not surprised by it.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "acceptance_criteria",
+        "objective",
+        "prompt",
+        "title"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "What Refinery sends a destination.",
+  "properties": {
+    "attachments": {
+      "description": "Attachments the prompt refers to.",
+      "items": {
+        "$ref": "#/definitions/DeliveredAttachment"
+      },
+      "type": "array"
+    },
+    "case_id": {
+      "description": "The case that produced it.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "delivery_id": {
+      "description": "The delivery this envelope belongs to.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "description": "The key the destination must treat as the deduplication identity for this attempt.",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "The source's correlation metadata, carried through untouched.",
+      "type": "object"
+    },
+    "output_id": {
+      "description": "The accepted output.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "produced_at": {
+      "description": "When the envelope was produced, in UTC.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "prompt": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/RefinedPrompt"
+        }
+      ],
+      "description": "The refined prompt."
+    },
+    "repository": {
+      "description": "The repository the refinement was grounded in, when there was one.",
+      "format": "uuid",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "request_id": {
+      "description": "The source's original request identifier, so the destination can correlate the result with what it submitted.",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "case_id",
+    "delivery_id",
+    "idempotency_key",
+    "output_id",
+    "produced_at",
+    "prompt",
+    "request_id",
+    "schema_version"
+  ],
+  "title": "DeliveryEnvelope",
+  "type": "object"
+}

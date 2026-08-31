@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "request_id": "ovld:coo-885.h31j",
+  "idempotency_key": "coo-885-h31j-submission-1",
+  "source": {
+    "system": "overlord",
+    "instance": "local",
+    "callback": {
+      "questions_url": "http://127.0.0.1:7788/refinery/questions",
+      "bearer_token": "callback-token"
+    }
+  },
+  "transcript": {
+    "messages": [
+      {
+        "id": "m-1",
+        "role": "user",
+        "content": "The importer restarts from zero whenever it is interrupted.",
+        "author": "Jake",
+        "created_at": "2026-08-31T10:00:00Z"
+      },
+      {
+        "role": "assistant",
+        "content": "It has no checkpoint. We would need to persist progress per batch."
+      }
+    ]
+  },
+  "task_hint": "Plan the resumable importer work.",
+  "attachments": [
+    {
+      "name": "failure.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "size_bytes": 2048,
+      "digest_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "source": "inline_base64",
+      "data": "aGVsbG8="
+    }
+  ],
+  "repository": "018f6b3a-0000-7000-8000-000000000001",
+  "destination": {
+    "kind": "overlord",
+    "base_url": "http://127.0.0.1:7788",
+    "mission_id": "coo:885",
+    "objective_id": "coo:885.h31j"
+  },
+  "metadata": {
+    "mission": "coo:885"
+  }
+}

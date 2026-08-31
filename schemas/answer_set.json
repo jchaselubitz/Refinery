@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "Answer": {
+      "additionalProperties": false,
+      "description": "A validated user response to one question.",
+      "properties": {
+        "answered_at": {
+          "description": "When the answer was given, in UTC.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "answered_by": {
+          "description": "Who answered: a person's identifier or the interface that collected it.",
+          "type": "string"
+        },
+        "question_id": {
+          "description": "The question answered.",
+          "format": "uuid",
+          "type": "string"
+        },
+        "value": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/AnswerValue"
+            }
+          ],
+          "description": "The response."
+        }
+      },
+      "required": [
+        "answered_at",
+        "answered_by",
+        "question_id",
+        "value"
+      ],
+      "type": "object"
+    },
+    "AnswerValue": {
+      "description": "A response value, shaped by its question's response type.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Free text.",
+          "properties": {
+            "text": {
+              "description": "The text.",
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "text"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "One selected choice value.",
+          "properties": {
+            "type": {
+              "enum": [
+                "choice"
+              ],
+              "type": "string"
+            },
+            "value": {
+              "description": "The selected value.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Several selected choice values.",
+          "properties": {
+            "type": {
+              "enum": [
+                "choices"
+              ],
+              "type": "string"
+            },
+            "values": {
+              "description": "The selected values.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "type",
+            "values"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "description": "The answers to one question request, submitted together.",
+  "properties": {
+    "answers": {
+      "description": "The answers, in any order.",
+      "items": {
+        "$ref": "#/definitions/Answer"
+      },
+      "type": "array"
+    },
+    "case_id": {
+      "description": "The case being answered.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "question_request_id": {
+      "description": "The outstanding question request these answers respond to.",
+      "format": "uuid",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "The contract version.",
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "answers",
+    "case_id",
+    "question_request_id",
+    "schema_version"
+  ],
+  "title": "AnswerSet",
+  "type": "object"
+}

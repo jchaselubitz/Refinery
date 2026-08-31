@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "case_id": "018f6b3a-0000-7000-8000-000000000002",
+  "question_request_id": "018f6b3a-0000-7000-8000-000000000010",
+  "answers": [
+    {
+      "question_id": "018f6b3a-0000-7000-8000-000000000011",
+      "value": { "type": "choice", "value": "sqlite" },
+      "answered_at": "2026-08-31T10:07:00Z",
+      "answered_by": "local_ui"
+    },
+    {
+      "question_id": "018f6b3a-0000-7000-8000-000000000012",
+      "value": { "type": "text", "text": "Keep the public tables unchanged." },
+      "answered_at": "2026-08-31T10:07:00Z",
+      "answered_by": "local_ui"
+    }
+  ]
+}

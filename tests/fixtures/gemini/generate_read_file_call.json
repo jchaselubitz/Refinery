@@ -1,0 +1,24 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          { "text": "Let me look at how retries are handled today." },
+          {
+            "functionCall": {
+              "name": "read_file",
+              "args": { "path": "src/client.rs" }
+            }
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 2451,
+    "candidatesTokenCount": 38,
+    "totalTokenCount": 2489
+  }
+}

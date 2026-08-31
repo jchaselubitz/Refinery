@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "delivery_id": "018f6b3a-0000-7000-8000-000000000040",
+  "case_id": "018f6b3a-0000-7000-8000-000000000002",
+  "output_id": "018f6b3a-0000-7000-8000-000000000041",
+  "request_id": "ovld:coo-885.h31j",
+  "idempotency_key": "refinery:018f6b3a-0000-7000-8000-000000000040:1",
+  "produced_at": "2026-08-31T10:12:00Z",
+  "prompt": {
+    "schema_version": 1,
+    "title": "Make the importer resumable",
+    "prompt": "Add a durable checkpoint to the importer so an interrupted run resumes from the last committed batch.",
+    "objective": "An interrupted import resumes without duplicating rows.",
+    "acceptance_criteria": [
+      "Killing the importer mid-run and restarting it imports every row exactly once."
+    ]
+  },
+  "attachments": [
+    {
+      "id": "018f6b3a-0000-7000-8000-000000000020",
+      "name": "failure.png",
+      "media_type": "image/png",
+      "size_bytes": 2048,
+      "digest_sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    }
+  ],
+  "repository": "018f6b3a-0000-7000-8000-000000000001",
+  "metadata": {
+    "mission": "coo:885"
+  }
+}
