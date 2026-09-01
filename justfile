@@ -39,3 +39,12 @@ acceptance:
 # Regenerate the committed JSON Schemas from the contract types.
 schemas:
     cargo run --bin refinery-schemas -- --out schemas
+
+# Build the release archive for this machine into dist/. Set
+# REFINERY_CODESIGN_IDENTITY and REFINERY_NOTARY_PROFILE to sign and notarize.
+release-archive target="":
+    ./scripts/release-cli.sh {{target}}
+
+# Verify a built archive the way `refinery update` verifies a downloaded one.
+release-verify archive target:
+    ./scripts/test-release-archive.sh {{archive}} {{target}}

@@ -95,7 +95,7 @@ impl<'a> Console<'a> {
 
     /// Ask a yes/no question. End of input takes the default, so a
     /// non-interactive run completes rather than hanging or erroring.
-    fn confirm(&mut self, question: &str, default: bool) -> bool {
+    pub fn confirm(&mut self, question: &str, default: bool) -> bool {
         let hint = if default { "Y/n" } else { "y/N" };
         let _ = write!(self.output, "{question} [{hint}]: ");
         let _ = self.output.flush();

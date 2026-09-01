@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.1.0"
+version = "0.2609010620.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Local prompt refinement service: turns transcripts, repository context, and media into validated prompts."
@@ -45,3 +45,10 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 todo = "warn"
+
+# rustc's debuginfo strip leaves proc-macro dylibs with a 4-byte-aligned
+# LINKEDIT string pool. macOS 27 dyld rejects those images, so `sqlx` (and
+# any other proc-macro) fails to load during a release build.
+# https://github.com/rust-lang/rust/issues/157750
+[profile.release.build-override]
+strip = "none"

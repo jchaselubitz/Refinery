@@ -6,6 +6,8 @@
 //! that milestone, rather than silently doing nothing.
 
 pub mod setup;
+pub mod uninstall;
+pub mod update;
 
 use std::path::PathBuf;
 
@@ -86,6 +88,44 @@ pub enum Command {
         #[command(subcommand)]
         action: ServiceCommand,
     },
+
+    /// Replace this installation with the newest published release.
+    ///
+    /// The archive is checked against the checksums the release published, its
+    /// payload manifest, and — on a signed install — the signing team, before
+    /// anything on disk is touched. Copies owned by a package manager are
+    /// refused rather than silently diverged from their package.
+    Update {
+        /// Report what is available without installing it.
+        #[arg(long)]
+        check: bool,
+        /// Install the published release even when it is not newer.
+        #[arg(long)]
+        force: bool,
+        /// Emit machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Remove this installation from the machine.
+    ///
+    /// Stops and unregisters the background service, deletes the stored
+    /// provider key and loopback token, and removes the executable. The data
+    /// directory is kept unless `--purge` asks for it.
+    Uninstall {
+        /// Also delete the data directory: settings, database, media, logs.
+        #[arg(long)]
+        purge: bool,
+        /// Leave the executable in place.
+        #[arg(long)]
+        keep_binary: bool,
+        /// Proceed without asking for confirmation.
+        #[arg(long, short = 'y')]
+        yes: bool,
+        /// Emit machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 /// Repository management actions.
@@ -160,7 +200,110 @@ pub async fn run(command: Command, mut config: Config) -> Result<()> {
             "serve must be dispatched by the application root"
         ))),
         Command::Open { print } => open(&config, print),
+        Command::Update { check, force, json } => run_update(check, force, json).await,
+        Command::Uninstall {
+            purge,
+            keep_binary,
+            yes,
+            json,
+        } => run_uninstall(&config, purge, keep_binary, yes, json),
     }
+}
+
+/// Check for, and unless asked not to install, the newest published release.
+async fn run_update(check: bool, force: bool, json: bool) -> Result<()> {
+    let report = update::update(update::UpdateOptions {
+        check_only: check,
+        force,
+        ..update::UpdateOptions::new(env!("CARGO_PKG_VERSION"))
+    })
+    .await?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string(&report).map_err(|source| AppError::Internal(source.into()))?
+        );
+        return Ok(());
+    }
+
+    // The human form says what happened and, when something is available, how
+    // to get it: a check that only prints a version number leaves the reader to
+    // guess the command.
+    let latest = report.latest_version.as_deref().unwrap_or("unknown");
+    match report.status.as_str() {
+        "installed" => {
+            println!("Updated {} to {latest}.", report.current_version);
+            if let Some(path) = &report.installed_path {
+                println!("{}", path.display());
+            }
+        }
+        "available" => {
+            println!(
+                "refinery {latest} is available (this is {}); run `refinery update` to install it.",
+                report.current_version
+            );
+            if let Some(url) = &report.release_url {
+                println!("{url}");
+            }
+        }
+        _ => println!("refinery {} is the latest release.", report.current_version),
+    }
+    Ok(())
+}
+
+/// Remove this installation, after saying exactly what will go.
+fn run_uninstall(
+    config: &Config,
+    purge: bool,
+    keep_binary: bool,
+    yes: bool,
+    json: bool,
+) -> Result<()> {
+    let options = uninstall::UninstallOptions {
+        purge,
+        keep_binary,
+        assume_yes: yes,
+        executable: None,
+    };
+
+    if !yes {
+        // A prompt nobody can answer is a hang, and an uninstall that proceeds
+        // unasked is worse, so a non-interactive run without `--yes` stops.
+        setup::require_interactive("refinery uninstall")?;
+
+        let stdin = std::io::stdin();
+        let mut input = stdin.lock();
+        let stdout = std::io::stdout();
+        let mut output = stdout.lock();
+        let mut console = setup::stdio_console(&mut input, &mut output);
+
+        println!("This will stop the service and remove the stored provider key and API token.");
+        if purge {
+            println!(
+                "It will also delete {} — settings, cases, media, and logs.",
+                config.data_dir.root().display()
+            );
+        }
+        if !console.confirm("Remove this Refinery installation?", false) {
+            println!("Nothing was removed.");
+            return Ok(());
+        }
+    }
+
+    let credentials = CredentialStore::open(&config.data_dir.credentials_dir());
+    let service = ServiceManager::new(config.data_dir.clone())?;
+    let report = uninstall::uninstall(config, &credentials, &service, &options)?;
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string(&report).map_err(|source| AppError::Internal(source.into()))?
+        );
+    } else {
+        println!("{}", uninstall::render(&report));
+    }
+    Ok(())
 }
 
 /// The guided first run.

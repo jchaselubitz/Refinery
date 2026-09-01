@@ -251,7 +251,8 @@ impl RepositoryConnector {
             .ignore(self.repository.policy.respect_ignore_files)
             .git_ignore(self.repository.policy.respect_ignore_files)
             .git_global(self.repository.policy.respect_ignore_files)
-            .git_exclude(self.repository.policy.respect_ignore_files);
+            .git_exclude(self.repository.policy.respect_ignore_files)
+            .require_git(false);
 
         let mut files = Vec::new();
         let mut result_bytes = 0usize;
@@ -353,7 +354,8 @@ impl RepositoryConnector {
             .ignore(self.repository.policy.respect_ignore_files)
             .git_ignore(self.repository.policy.respect_ignore_files)
             .git_global(self.repository.policy.respect_ignore_files)
-            .git_exclude(self.repository.policy.respect_ignore_files);
+            .git_exclude(self.repository.policy.respect_ignore_files)
+            .require_git(false);
         let mut matches = Vec::new();
         let mut result_bytes = 0usize;
         let mut truncated = false;

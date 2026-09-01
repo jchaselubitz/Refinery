@@ -3,3 +3,6 @@
 /target
 
 .env
+
+# Release archives built by scripts/release-cli.sh.
+/dist

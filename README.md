@@ -33,6 +33,63 @@ Changing a contract in `src/domain/` from here on means bumping
 `CONTRACT_VERSION`, regenerating `schemas/`, and updating the frozen fixtures in
 `tests/fixtures/contracts/`. See [`schemas/README.md`](schemas/README.md).
 
+## Install
+
+macOS, Apple Silicon or Intel:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/cooperativ-labs/refinery/main/scripts/install-cli.sh | bash
+refinery setup
+```
+
+The script installs the newest notarized release into `~/.local/bin`. Nothing is
+written until the download matches the checksum the release published, its
+payload manifest names that version and target, and the binary passes
+Gatekeeper's signature check. Other platforms build from source with
+`cargo build --release`.
+
+```sh
+refinery update            # install the newest release over this one
+refinery update --check    # report what is available without installing it
+refinery update --force    # reinstall the published version, to repair a copy
+refinery uninstall         # stop the service, drop the secrets, remove the binary
+refinery uninstall --purge # also delete the data directory
+```
+
+`update` refuses a copy owned by Homebrew, Nix, or an application bundle rather
+than diverging it from its package, and `doctor` reports which case this install
+is before you need it. `uninstall` keeps the data directory unless `--purge`
+asks for it, because that directory holds your cases rather than anything the
+installer put there; it asks for confirmation on a terminal and requires `--yes`
+anywhere else.
+
+## Publishing a release
+
+Releases are cut from a tag and built, signed, notarized, and attested by
+[`.github/workflows/release-cli.yml`](.github/workflows/release-cli.yml):
+
+```sh
+just bump-minor                       # stamp 0.YYMMDDHHMM.0 into Cargo.toml
+git commit -am "Release v$(sed -nE 's/^version = "(.*)"$/\1/p' Cargo.toml)"
+git tag "v$(sed -nE 's/^version = "(.*)"$/\1/p' Cargo.toml)"
+git push origin main --tags
+```
+
+The workflow builds `aarch64-apple-darwin` and `x86_64-apple-darwin`, signs each
+binary with the Developer ID identity, notarizes the archive, verifies it with
+[`scripts/test-release-archive.sh`](scripts/test-release-archive.sh), and
+publishes both archives plus `checksums.txt` to a GitHub release. It needs these
+repository secrets: `APPLE_SIGNING_IDENTITY`, `APPLE_CERTIFICATE_BASE64`,
+`APPLE_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`, `APPLE_ID`,
+`APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`.
+
+An archive holds the `refinery` binary and a `refinery-payload.json` manifest
+naming the version, target, and binary it contains. `refinery update` and the
+install script both check that manifest, so an archive whose contents drift from
+what a release claims fails to install rather than half-installing. Build one
+locally with `just release-archive`; without the signing variables set it is
+unsigned but otherwise identical.
+
 ## Build and run
 
 ```sh

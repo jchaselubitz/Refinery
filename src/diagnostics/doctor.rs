@@ -205,6 +205,7 @@ pub async fn run_with(
     findings.push(check_local_api(credentials));
     findings.push(check_overlord(config));
     findings.push(check_service(config, service));
+    findings.push(check_updates());
 
     Report { findings }
 }
@@ -217,6 +218,7 @@ const REPOSITORIES: &str = "repositories";
 const LOCAL_API: &str = "local API";
 const OVERLORD: &str = "Overlord";
 const SERVICE: &str = "service";
+const UPDATES: &str = "updates";
 
 /// Configuration and data-directory permissions.
 ///
@@ -572,6 +574,29 @@ fn check_service(config: &Config, manager: Option<&ServiceManager>) -> Finding {
             SERVICE,
             format!("no supported service manager on {platform}"),
             "run `refinery serve` to run the daemon in the foreground",
+        ),
+    }
+}
+
+/// Whether `refinery update` could replace this install in place.
+///
+/// Offline on purpose: this asks what kind of install this is, not what is
+/// published. A user on a Homebrew copy or an unpublished platform should learn
+/// the right route to a new version here rather than from `update` refusing.
+fn check_updates() -> Finding {
+    if crate::cli::update::can_self_update() {
+        return Finding::pass(UPDATES, "`refinery update` can replace this installation");
+    }
+    match crate::cli::update::release::host_target() {
+        Err(error) => Finding::warn(
+            UPDATES,
+            error.detail(),
+            "build from source with `cargo build --release` to move to a new version",
+        ),
+        Ok(_) => Finding::warn(
+            UPDATES,
+            "this copy of `refinery` is owned by a package manager or an application bundle",
+            "update it the way its package expects; `refinery update` will refuse it",
         ),
     }
 }

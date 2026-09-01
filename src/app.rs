@@ -30,6 +30,17 @@ pub async fn run(cli: Cli) -> Result<()> {
         "starting"
     );
 
+    // `update` and `uninstall` are deliberately dispatched before the store is
+    // opened. Both must work on an installation that is broken — that is what
+    // `update --force` is for — and neither has any use for the database, which
+    // `uninstall --purge` is about to delete.
+    if matches!(
+        cli.command,
+        crate::cli::Command::Update { .. } | crate::cli::Command::Uninstall { .. }
+    ) {
+        return crate::cli::run(cli.command, config).await;
+    }
+
     // Opening the store applies migrations and runs recovery before any
     // command can observe or start work. The actual job handlers arrive with
     // the provider and delivery milestones, but recovery is deliberately

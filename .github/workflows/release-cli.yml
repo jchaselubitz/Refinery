@@ -1,0 +1,112 @@
+name: Release Refinery CLI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    env:
+      REFINERY_RELEASE_TAG: ${{ github.ref_name }}
+      REFINERY_CODESIGN_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      REFINERY_NOTARY_PROFILE: refinery-cli-notary
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Import Developer ID certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          : "${APPLE_CERTIFICATE_BASE64:?Set the Apple signing certificate secret}"
+          : "${APPLE_CERTIFICATE_PASSWORD:?Set the certificate password secret}"
+          : "${KEYCHAIN_PASSWORD:?Set a temporary keychain password secret}"
+          : "${REFINERY_CODESIGN_IDENTITY:?Set the Developer ID Application signing identity secret}"
+          : "${APPLE_ID:?Set the Apple ID notarization secret}"
+          : "${APPLE_APP_SPECIFIC_PASSWORD:?Set the Apple app-specific password secret}"
+          : "${APPLE_TEAM_ID:?Set the Apple Developer Team ID secret}"
+          certificate_path="$RUNNER_TEMP/refinery-signing.p12"
+          keychain_path="$RUNNER_TEMP/refinery-signing.keychain-db"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 -D > "$certificate_path"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security import "$certificate_path" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+          security list-keychain -d user -s "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$keychain_path"
+          xcrun notarytool store-credentials "$REFINERY_NOTARY_PROFILE" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+      - name: Package signed CLI
+        run: scripts/release-cli.sh ${{ matrix.target }}
+
+      - name: Verify release archive
+        run: scripts/test-release-archive.sh dist/refinery-*-${{ matrix.target }}.zip ${{ matrix.target }}
+
+      - name: Attest release archive
+        uses: actions/attest@v2
+        with:
+          subject-path: dist/refinery-*.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: refinery-${{ matrix.target }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Combine and verify checksums
+        run: |
+          set -euo pipefail
+          cat dist/refinery-*.zip.sha256 > dist/checksums.txt
+          (cd dist && shasum -a 256 -c checksums.txt)
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/refinery-*.zip dist/checksums.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Refinery $GITHUB_REF_NAME" \
+            --generate-notes
