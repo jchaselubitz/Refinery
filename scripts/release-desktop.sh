@@ -15,6 +15,8 @@ tag="v$version"
 
 command -v gh >/dev/null || { echo "GitHub CLI (gh) is required" >&2; exit 1; }
 gh auth status >/dev/null
+: "${REFINERY_CODESIGN_IDENTITY:?Set the Developer ID identity used to sign the release}"
+: "${REFINERY_NOTARY_PROFILE:?Set the notarytool keychain profile used to notarize the release}"
 
 # Remove only release artifacts and the two cross-compiled target directories.
 # Keeping the host target directory avoids discarding unrelated local builds.
@@ -24,7 +26,10 @@ for target in "${targets[@]}"; do
 done
 
 for target in "${targets[@]}"; do
-  REFINERY_RELEASE_TAG="$tag" scripts/release-cli.sh "$target"
+  REFINERY_RELEASE_TAG="$tag" \
+    REFINERY_CODESIGN_IDENTITY="$REFINERY_CODESIGN_IDENTITY" \
+    REFINERY_NOTARY_PROFILE="$REFINERY_NOTARY_PROFILE" \
+    scripts/release-cli.sh "$target"
   scripts/test-release-archive.sh "dist/refinery-$version-$target.zip" "$target"
 done
 

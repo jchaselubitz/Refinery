@@ -80,7 +80,8 @@ To build and publish the two desktop archives from this Mac instead, run
 the two cross-compiled macOS target directories before rebuilding, verifies the
 new archives, and creates the GitHub release with the GitHub CLI. It uses the
 same `REFINERY_CODESIGN_IDENTITY` and `REFINERY_NOTARY_PROFILE` environment
-variables as `just release-archive` for signing and notarization.
+variables as `just release-archive` for signing and notarization; both are
+required, so an unsigned or unnotarized desktop release cannot be published.
 
 The workflow builds `aarch64-apple-darwin` and `x86_64-apple-darwin`, signs each
 binary with the Developer ID identity, notarizes the archive, verifies it with
