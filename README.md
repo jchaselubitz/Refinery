@@ -75,6 +75,13 @@ git tag "v$(sed -nE 's/^version = "(.*)"$/\1/p' Cargo.toml)"
 git push origin main --tags
 ```
 
+To build and publish the two desktop archives from this Mac instead, run
+`just release-desktop`. It removes the previous `dist/refinery-*` archives and
+the two cross-compiled macOS target directories before rebuilding, verifies the
+new archives, and creates the GitHub release with the GitHub CLI. It uses the
+same `REFINERY_CODESIGN_IDENTITY` and `REFINERY_NOTARY_PROFILE` environment
+variables as `just release-archive` for signing and notarization.
+
 The workflow builds `aarch64-apple-darwin` and `x86_64-apple-darwin`, signs each
 binary with the Developer ID identity, notarizes the archive, verifies it with
 [`scripts/test-release-archive.sh`](scripts/test-release-archive.sh), and

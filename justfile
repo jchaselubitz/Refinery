@@ -8,6 +8,10 @@ build-debug:
 build-release:
     cargo build --release
 
+# Clean prior desktop artifacts, build both macOS archives, and publish to GitHub.
+release-desktop:
+    ./scripts/release-desktop.sh
+
 test:
     cargo test
 
