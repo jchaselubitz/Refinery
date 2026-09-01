@@ -31,7 +31,9 @@ done
 cat dist/refinery-*.zip.sha256 > dist/checksums.txt
 (cd dist && shasum -a 256 -c checksums.txt)
 
+# GitHub's target_commitish accepts a branch or full SHA, not the local ref HEAD.
+commit="$(git rev-parse HEAD)"
 gh release create "$tag" dist/refinery-*.zip dist/checksums.txt \
-  --target HEAD \
+  --target "$commit" \
   --title "Refinery $tag" \
   --generate-notes
