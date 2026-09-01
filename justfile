@@ -1,3 +1,5 @@
+set dotenv-load
+
 # Stamp the crate version as 0.YYMMDDHHMM.0 from the current UTC time.
 bump-minor:
     ./scripts/bump-minor-version.sh
