@@ -38,7 +38,18 @@ cat dist/refinery-*.zip.sha256 > dist/checksums.txt
 
 # GitHub's target_commitish accepts a branch or full SHA, not the local ref HEAD.
 commit="$(git rev-parse HEAD)"
-gh release create "$tag" dist/refinery-*.zip dist/checksums.txt \
-  --target "$commit" \
-  --title "Refinery $tag" \
-  --generate-notes
+assets=(dist/refinery-*.zip dist/checksums.txt)
+if gh release view "$tag" >/dev/null 2>&1; then
+  gh release upload "$tag" "${assets[@]}" --clobber
+else
+  if ! gh release create "$tag" "${assets[@]}" \
+    --target "$commit" \
+    --title "Refinery $tag" \
+    --generate-notes; then
+    # A tag push can start the release workflow while this local build runs.
+    # If it won that race, publish this verified build's assets to the same
+    # release instead of failing solely because the release already exists.
+    gh release view "$tag" >/dev/null
+    gh release upload "$tag" "${assets[@]}" --clobber
+  fi
+fi
