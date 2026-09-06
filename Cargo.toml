@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.2609060734.0"
+version = "0.2609060750.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Local prompt refinement service: turns transcripts, repository context, and media into validated prompts."
