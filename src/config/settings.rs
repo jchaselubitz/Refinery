@@ -17,6 +17,9 @@ use crate::error::{AppError, Result};
 /// older file rather than silently misreading it.
 pub const SETTINGS_VERSION: u32 = 1;
 
+/// Canonical hosted destination configured by `refinery setup`.
+pub const OVERLORD_CLOUD_BASE_URL: &str = "https://backend.ovld.ai";
+
 /// The non-secret application settings.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -36,7 +39,7 @@ pub struct Settings {
     /// Bounds applied to inputs and repository reads.
     #[serde(default)]
     pub limits: LimitSettings,
-    /// The local Overlord destination, when one is configured.
+    /// The Overlord destination, when one is configured.
     #[serde(default)]
     pub overlord: OverlordSettings,
 }
@@ -86,8 +89,8 @@ pub struct ProviderSettings {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OverlordSettings {
-    /// The base URL of a local Overlord instance, for example
-    /// `http://127.0.0.1:3000`. Absent until setup configures one.
+    /// The base URL of the Overlord backend, normally
+    /// `https://backend.ovld.ai`. Absent until setup configures one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 }
@@ -261,12 +264,12 @@ impl Settings {
     }
 }
 
-/// Check that an Overlord base URL addresses a local instance.
+/// Check that an Overlord base URL uses the supported cloud backend or a
+/// loopback instance retained for existing local installations.
 ///
-/// Stage 1 delivers to an Overlord on the same machine. Refusing anything else
-/// here means a settings file — which is not a secret and may be shared or
-/// copied between machines — can never redirect a user's refined prompts to a
-/// host they did not intend.
+/// A settings file is not a secret and may be shared or copied between
+/// machines, so it may only select the canonical Overlord cloud backend or a
+/// loopback host. It must never redirect refined prompts to an arbitrary host.
 pub fn validate_overlord_url(url: &str) -> std::result::Result<(), String> {
     let parsed = url::Url::parse(url).map_err(|source| format!("is not a URL: {source}"))?;
     if !matches!(parsed.scheme(), "http" | "https") {
@@ -282,9 +285,11 @@ pub fn validate_overlord_url(url: &str) -> std::result::Result<(), String> {
         url::Host::Ipv4(address) => address.is_loopback(),
         url::Host::Ipv6(address) => address.is_loopback(),
     };
-    if !is_loopback {
+    let is_overlord_cloud = matches!(&host, url::Host::Domain(name) if name.eq_ignore_ascii_case("backend.ovld.ai"))
+        && parsed.scheme() == "https";
+    if !is_loopback && !is_overlord_cloud {
         return Err(format!(
-            "must address a local Overlord on loopback, not `{host}`"
+            "must address https://backend.ovld.ai or a local Overlord on loopback, not `{host}`"
         ));
     }
     Ok(())
@@ -295,11 +300,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_local_overlord_url_is_accepted() {
+    fn supported_overlord_urls_are_accepted() {
         for url in [
             "http://127.0.0.1:3000",
             "http://localhost:3000/api",
             "https://[::1]:3000",
+            "https://backend.ovld.ai",
         ] {
             validate_overlord_url(url).unwrap_or_else(|error| panic!("{url}: {error}"));
         }
@@ -308,9 +314,10 @@ mod tests {
     #[test]
     fn a_remote_overlord_url_is_refused() {
         // A settings file is not a secret and may be copied between machines;
-        // it must never be able to redirect refined prompts off the box.
+        // it must never be able to redirect refined prompts to an untrusted host.
         for url in [
             "http://overlord.example.com",
+            "http://backend.ovld.ai",
             "http://10.0.0.5:3000",
             "file:///etc/passwd",
             "not a url",
@@ -320,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn a_settings_file_with_a_remote_overlord_refuses_to_load() {
+    fn a_settings_file_with_an_untrusted_overlord_refuses_to_load() {
         let temp = tempfile::tempdir().expect("temp dir");
         let path = temp.path().join("refinery.toml");
         std::fs::write(

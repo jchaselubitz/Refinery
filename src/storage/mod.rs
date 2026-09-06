@@ -48,7 +48,7 @@ pub struct Storage {
 }
 
 /// The small, safe-to-display portion of a durable case snapshot.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CaseSummary {
     /// Stable case identity.
     pub id: CaseId,

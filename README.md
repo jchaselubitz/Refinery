@@ -120,6 +120,45 @@ schema-drift check, interface asset parse, fixture sanitizer check, and the
 versioned evaluation — the same gates CI runs. The full acceptance mapping is
 documented in [`acceptance/stage1.md`](acceptance/stage1.md).
 
+## Desktop window
+
+`refinery-desktop` is a native window over the same daemon, for the four things
+a person does most: paste a transcript and submit it, answer the question that
+comes back, copy or save the refined prompt, and keep the Gemini key and the
+enrolled folders current. It is a second binary behind the `desktop` feature,
+because its GUI toolchain is heavy and nothing the CLI does needs it:
+
+```sh
+just desktop            # run it from source
+just build-desktop      # target/release/refinery-desktop
+just desktop-check      # clippy and the window's own tests, feature on
+```
+
+The window resolves the data directory, port, and credential store exactly as
+the command line does, so it shares cases, folders, and the key with `refinery
+serve`, `refinery open`, and Overlord. If a daemon is already listening — the
+installed service, or a `refinery serve` in a terminal — the window attaches to
+it; otherwise it hosts the daemon itself for as long as it is open. Its status
+line says which.
+
+| Tab          | What it does                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| Compose      | Paste text; `User:` / `Assistant:` / `System:` line prefixes become separate messages. Pick a folder and where the prompt goes, then submit. |
+| Cases        | Every case, live. Answer a pending question, copy the prompt or save it as Markdown, retry a delivery, cancel. |
+| Repositories | Enroll a folder with a native picker, or forget one. Nothing on disk is modified.                    |
+| Settings     | Store, test, or remove the Gemini key; see the provider, model, data directory, and service address. |
+
+A case submitted from the window keeps its result locally by default, exported
+to `exports/` inside the data directory, and the Cases tab shows the prompt as
+soon as it exists; an Overlord destination is offered when `refinery setup` has
+configured one. The window identifies itself as source `local_ui` with instance
+`refinery-desktop`.
+
+On macOS the key lives in the login keychain under the same item the CLI uses,
+so the first read from the window may prompt for permission to share it; allow
+it once. `REFINERY_DESKTOP_TAB=cases|repositories|settings` opens the window on
+that tab, which is handy for screenshots and support.
+
 ## Data directory
 
 Refinery keeps everything it owns in one owner-only directory, created on first

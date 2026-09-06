@@ -36,7 +36,7 @@ use axum::{
         sse::{Event, KeepAlive, Sse},
         IntoResponse, Response,
     },
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -104,6 +104,7 @@ pub fn router(
         .route("/v1/refinements/{id}/deliveries", post(retry_delivery))
         .route("/v1/refinements/{id}/events", get(events))
         .route("/v1/repositories", get(repositories).post(add_repository))
+        .route("/v1/repositories/{id}", delete(forget_repository))
         .route("/v1/settings", get(get_settings))
         .route("/v1/logs", get(logs))
         .layer(middleware::from_fn_with_state(state.clone(), authorize));
@@ -485,6 +486,33 @@ async fn add_repository(
         .await
     {
         Ok((repository, _)) => Json(repository_view(repository)).into_response(),
+        Err(e) => app_error(e),
+    }
+}
+
+/// Forget a registered repository by identifier.
+///
+/// The directory itself is never touched; only the registration row goes.
+/// The registry is keyed by canonical path, so the identifier is resolved to
+/// its root first, which also means an unknown identifier is a `404` rather
+/// than a silent no-op.
+async fn forget_repository(State(state): State<ApiState>, Path(id): Path<String>) -> Response {
+    let id = match crate::domain::RepositoryId::from_str(&id) {
+        Ok(id) => id,
+        Err(_) => return app_error(AppError::invalid("malformed repository id")),
+    };
+    let repositories = match state.store.list_repositories().await {
+        Ok(items) => items,
+        Err(e) => return app_error(e),
+    };
+    let Some(repository) = repositories.into_iter().find(|item| item.id == id) else {
+        return app_error(AppError::NotFound {
+            kind: "repository",
+            id: id.to_string(),
+        });
+    };
+    match state.store.forget_repository(&repository.root).await {
+        Ok(_) => Json(serde_json::json!({ "id": id, "forgotten": true })).into_response(),
         Err(e) => app_error(e),
     }
 }

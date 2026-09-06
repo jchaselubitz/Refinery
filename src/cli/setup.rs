@@ -12,7 +12,7 @@
 //! 2. take a Gemini API key and store it in the credential store;
 //! 3. test the provider connection without displaying the secret;
 //! 4. offer to register the current directory as a repository;
-//! 5. detect or configure the local Overlord connection;
+//! 5. configure the Overlord Cloud connection;
 //! 6. install and start the background service if requested; and
 //! 7. run a final health check and show how to reopen configuration.
 //!
@@ -26,7 +26,7 @@ use std::path::PathBuf;
 
 use crate::agent;
 use crate::config::credentials::{CredentialBackend, CredentialKey, CredentialStore};
-use crate::config::settings::validate_overlord_url;
+use crate::config::settings::{validate_overlord_url, OVERLORD_CLOUD_BASE_URL};
 use crate::config::Config;
 use crate::diagnostics::doctor;
 use crate::diagnostics::service::ServiceManager;
@@ -467,13 +467,13 @@ async fn step_four_repository(
     Ok(())
 }
 
-/// Step 5 — find or configure the local Overlord.
+/// Step 5 — configure Overlord Cloud.
 fn step_five_overlord(
     config: &mut Config,
     console: &mut Console<'_>,
     outcome: &mut SetupOutcome,
 ) -> Result<()> {
-    console.say("Refinery can deliver finished prompts to a local Overlord.");
+    console.say("Refinery can deliver finished prompts to Overlord Cloud.");
 
     let existing = config.settings.overlord.base_url.clone();
     if let Some(existing) = &existing {
@@ -491,7 +491,7 @@ fn step_five_overlord(
         return Ok(());
     }
 
-    let default = existing.unwrap_or_else(|| "http://127.0.0.1:3000".to_owned());
+    let default = existing.unwrap_or_else(|| OVERLORD_CLOUD_BASE_URL.to_owned());
     let Some(answer) = console.ask("Overlord base URL", Some(&default)) else {
         console.blank();
         return Ok(());
@@ -736,12 +736,12 @@ mod tests {
         assert!(outcome.repository_registered.is_some(), "{transcript}");
         assert_eq!(
             outcome.overlord_configured.as_deref(),
-            Some("http://127.0.0.1:3000"),
+            Some("https://backend.ovld.ai"),
             "{transcript}"
         );
         assert_eq!(
             config.settings.overlord.base_url.as_deref(),
-            Some("http://127.0.0.1:3000")
+            Some("https://backend.ovld.ai")
         );
         // The setting was persisted, not merely held in memory.
         assert!(config.data_dir.settings_file().exists());
@@ -830,13 +830,13 @@ mod tests {
         assert!(outcome.provider_key_stored);
         assert_eq!(
             config.settings.overlord.base_url.as_deref(),
-            Some("http://127.0.0.1:3000"),
+            Some("https://backend.ovld.ai"),
             "a configured destination must survive a second run"
         );
     }
 
     #[test]
-    fn a_remote_overlord_url_is_refused_during_setup() {
+    fn an_untrusted_overlord_url_is_refused_during_setup() {
         let (_temp, config, outcome, transcript) = run_setup(
             &[
                 "AIzaSetupTestKeyValue000",
@@ -849,7 +849,7 @@ mod tests {
         );
         assert!(outcome.overlord_configured.is_none(), "{transcript}");
         assert!(config.settings.overlord.base_url.is_none());
-        assert!(transcript.contains("loopback"), "{transcript}");
+        assert!(transcript.contains("backend.ovld.ai"), "{transcript}");
     }
 
     #[test]

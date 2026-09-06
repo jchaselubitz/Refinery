@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.2609060903.0"
+version = "0.2609060954.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Local prompt refinement service: turns transcripts, repository context, and media into validated prompts."
@@ -11,6 +11,17 @@ publish = false
 name = "refinery"
 path = "src/main.rs"
 
+# The native desktop window. Opt in with `--features desktop`; the GUI
+# toolchain is heavy and the CLI build, CI, and release archives do not need it.
+[[bin]]
+name = "refinery-desktop"
+path = "src/bin/refinery-desktop.rs"
+required-features = ["desktop"]
+
+[features]
+default = []
+desktop = ["dep:eframe", "dep:rfd"]
+
 [dependencies]
 anyhow = "1"
 async-stream = "0.3"
@@ -20,8 +31,10 @@ base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive", "env"] }
 directories = "5"
+eframe = { version = "0.36", optional = true }
 ignore = "0.4"
 keyring = { version = "3.6", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+rfd = { version = "0.17", optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 schemars = { version = "0.8", features = ["chrono", "uuid1"] }
 serde = { version = "1", features = ["derive"] }

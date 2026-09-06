@@ -277,6 +277,28 @@ async fn a_repository_registers_through_the_form_and_cannot_widen_its_policy() {
         harness.get("/v1/repositories").await.json().await.unwrap();
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0]["id"], registered["id"]);
+
+    // Forgetting drops the registration and nothing else; the directory stays.
+    let id = registered["id"].as_str().unwrap();
+    let forgotten = reqwest::Client::new()
+        .delete(harness.url(&format!("/v1/repositories/{id}")))
+        .bearer_auth("test-token")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(forgotten.status(), StatusCode::OK);
+    assert!(root.is_dir(), "forgetting must not touch the directory");
+    let listed: Vec<serde_json::Value> =
+        harness.get("/v1/repositories").await.json().await.unwrap();
+    assert!(listed.is_empty());
+
+    let missing = reqwest::Client::new()
+        .delete(harness.url(&format!("/v1/repositories/{id}")))
+        .bearer_auth("test-token")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(missing.status(), StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]

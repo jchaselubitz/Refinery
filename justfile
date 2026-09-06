@@ -10,6 +10,20 @@ build-debug:
 build-release:
     cargo build --release
 
+# Run the native desktop window from source.
+desktop:
+    cargo run --features desktop --bin refinery-desktop
+
+# Build the native desktop window in release mode.
+build-desktop:
+    cargo build --release --features desktop --bin refinery-desktop
+
+# Lint and test with the desktop feature on; `check` leaves it off because the
+# GUI toolchain is heavy and the CLI does not need it.
+desktop-check:
+    cargo clippy --all-targets --features desktop -- -D warnings
+    cargo test --features desktop --lib desktop::
+
 # Clean prior desktop artifacts, build both macOS archives, and publish to GitHub.
 release-desktop:
     ./scripts/release-desktop.sh

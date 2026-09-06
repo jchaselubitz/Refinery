@@ -35,7 +35,7 @@ pub const MAX_STREAM_EVENTS: u32 = 200;
 pub const MAX_LIST_CASES: u32 = 200;
 
 /// One delivery attempt as storage holds it.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DeliveryRecord {
     /// Durable delivery identity.
     pub id: DeliveryId,
@@ -62,7 +62,7 @@ pub struct DeliveryRecord {
 }
 
 /// A candidate or accepted refined prompt as storage holds it.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StoredOutput {
     /// Durable output identity.
     pub id: OutputId,
@@ -80,7 +80,7 @@ pub struct StoredOutput {
 }
 
 /// One question request together with whatever has been answered.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QuestionThread {
     /// The request, including every question in display order.
     pub request: QuestionRequest,
@@ -93,7 +93,7 @@ pub struct QuestionThread {
 /// One round trip rather than seven, because the browser refreshes this whole
 /// object whenever the case's event stream moves and seven requests per event
 /// would be seven chances to render a half-updated case.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CaseDetail {
     /// The contract version, so the page can refuse a response it predates.
     pub schema_version: SchemaVersion,
@@ -134,7 +134,7 @@ pub struct CaseDetail {
 /// detail of where Refinery keeps bytes, and putting it in a browser response
 /// would publish the shape of the user's data directory to any page that can
 /// read this endpoint.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AttachmentView {
     /// The verified attachment metadata.
     #[serde(flatten)]

@@ -15,6 +15,8 @@ pub mod app;
 pub mod cases;
 pub mod cli;
 pub mod config;
+#[cfg(feature = "desktop")]
+pub mod desktop;
 pub mod diagnostics;
 pub mod domain;
 pub mod error;

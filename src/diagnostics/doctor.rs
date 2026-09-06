@@ -537,7 +537,7 @@ fn check_overlord(config: &Config) -> Finding {
         None => Finding::warn(
             OVERLORD,
             "no Overlord destination is configured",
-            "run `refinery setup` to point Refinery at a local Overlord, or deliver results by local export",
+            "run `refinery setup` to point Refinery at Overlord Cloud, or deliver results by local export",
         ),
     }
 }
